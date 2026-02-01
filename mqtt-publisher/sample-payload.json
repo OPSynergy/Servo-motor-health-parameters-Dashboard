@@ -1,0 +1,8 @@
+{
+  "deviceId": "MOTOR-001",
+  "temperature": 45.5,
+  "vibration": 1.8,
+  "current": 5.2,
+  "rpm": 2500,
+  "timestamp": "2024-01-15T10:30:00.000Z"
+}

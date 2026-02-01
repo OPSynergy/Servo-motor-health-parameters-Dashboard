@@ -1,0 +1,36 @@
+version: '3.8'
+
+services:
+  mongodb:
+    image: mongo:7
+    container_name: servo-motor-mongodb
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    environment:
+      MONGO_INITDB_DATABASE: servo_motor_db
+    restart: unless-stopped
+    networks:
+      - servo-motor-network
+
+  mosquitto:
+    image: eclipse-mosquitto:2.0
+    container_name: servo-motor-mosquitto
+    ports:
+      - "1883:1883"
+      - "9001:9001"
+    volumes:
+      - ./mosquitto/config:/mosquitto/config
+      - ./mosquitto/data:/mosquitto/data
+      - ./mosquitto/log:/mosquitto/log
+    restart: unless-stopped
+    networks:
+      - servo-motor-network
+
+volumes:
+  mongodb_data:
+
+networks:
+  servo-motor-network:
+    driver: bridge

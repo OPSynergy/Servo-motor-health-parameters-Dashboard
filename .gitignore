@@ -1,0 +1,89 @@
+# Dependencies
+node_modules/
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+.env.development
+.env.production
+.env.test
+
+# Build outputs
+dist/
+build/
+*.log
+logs/
+*.log.*
+
+# Frontend build
+frontend/dist/
+frontend/build/
+frontend/.vite/
+
+# Backend
+backend/dist/
+backend/build/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.project
+.classpath
+.settings/
+*.sublime-project
+*.sublime-workspace
+
+# OS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+Desktop.ini
+
+# MongoDB
+data/
+mongodb_data/
+*.db
+*.sqlite
+*.sqlite3
+
+# MQTT / Mosquitto
+mosquitto/data/
+mosquitto/log/
+*.pid
+
+# Testing
+coverage/
+.nyc_output/
+*.lcov
+.jest/
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.temp
+.cache/
+
+# Docker
+docker-compose.override.yml
+.dockerignore
+
+# Misc
+*.bak
+*.backup
+*.old
+*.orig
+.npm
+.eslintcache
+.stylelintcache

@@ -1,0 +1,17 @@
+{
+  "name": "servo-motor-mqtt-publisher",
+  "version": "1.0.0",
+  "description": "MQTT Publisher Simulator for Servo Motor Sensor Data",
+  "main": "publisher.js",
+  "type": "module",
+  "scripts": {
+    "start": "node publisher.js"
+  },
+  "keywords": ["mqtt", "iot", "simulator"],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "mqtt": "^5.3.1",
+    "dotenv": "^16.3.1"
+  }
+}

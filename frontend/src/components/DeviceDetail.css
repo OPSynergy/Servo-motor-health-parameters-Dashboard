@@ -1,0 +1,155 @@
+.device-detail {
+  width: 100%;
+}
+
+.device-detail-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+  padding-bottom: 1rem;
+  border-bottom: 2px solid #e0e0e0;
+}
+
+.device-detail-header h2 {
+  color: #333;
+  font-size: 1.75rem;
+}
+
+.time-range-selector {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.time-range-selector button {
+  padding: 0.5rem 1rem;
+  border: 2px solid #e0e0e0;
+  background: white;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: all 0.2s ease;
+}
+
+.time-range-selector button:hover {
+  border-color: #667eea;
+  color: #667eea;
+}
+
+.time-range-selector button.active {
+  background: #667eea;
+  color: white;
+  border-color: #667eea;
+}
+
+.loading-indicator {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #666;
+  margin-bottom: 1rem;
+}
+
+.spinner-small {
+  border: 2px solid rgba(102, 126, 234, 0.3);
+  border-top: 2px solid #667eea;
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  animation: spin 1s linear infinite;
+}
+
+.device-detail-content {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.metrics-section {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 1.5rem;
+}
+
+.charts-section {
+  margin-top: 1rem;
+}
+
+.alerts-section {
+  margin-top: 1rem;
+}
+
+.alerts-section h3 {
+  margin-bottom: 1rem;
+  color: #333;
+}
+
+.alerts-list-detailed {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.alert-detail {
+  padding: 1rem;
+  border-radius: 8px;
+  border-left: 4px solid;
+}
+
+.alert-detail.critical {
+  background: #ffebee;
+  border-left-color: #f44336;
+}
+
+.alert-detail.warning {
+  background: #fff3e0;
+  border-left-color: #ff9800;
+}
+
+.alert-detail-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.alert-type {
+  font-weight: 600;
+  text-transform: capitalize;
+  color: #333;
+}
+
+.alert-severity-badge {
+  padding: 0.25rem 0.75rem;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.alert-detail.critical .alert-severity-badge {
+  background: #f44336;
+  color: white;
+}
+
+.alert-detail.warning .alert-severity-badge {
+  background: #ff9800;
+  color: white;
+}
+
+.alert-detail-message {
+  color: #666;
+  margin-bottom: 0.5rem;
+  line-height: 1.5;
+}
+
+.alert-detail-time {
+  font-size: 0.85rem;
+  color: #999;
+}
+
+@media (max-width: 1200px) {
+  .metrics-section {
+    grid-template-columns: 1fr;
+  }
+}
