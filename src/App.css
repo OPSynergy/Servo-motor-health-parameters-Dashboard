@@ -9,7 +9,7 @@
 .main-content {
   flex: 1;
   margin-left: 280px;
-  transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: margin-left 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   padding: 32px;
   overflow-y: auto;
   background: linear-gradient(to bottom, #fafafa 0%, #ffffff 100%);

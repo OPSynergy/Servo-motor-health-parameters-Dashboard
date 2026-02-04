@@ -652,6 +652,145 @@
   padding-bottom: 0;
 }
 
+/* Professional Charts Grid - NEW */
+.charts-grid-professional {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+  margin-top: 24px;
+}
+
+.professional-chart-card {
+  background: white;
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+  border: 1px solid #e5e7eb;
+}
+
+.professional-chart-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transform: translateY(-2px);
+}
+
+.chart-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 20px;
+}
+
+.chart-title-group {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.chart-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.chart-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1f2937;
+  margin: 0 0 4px 0;
+}
+
+.chart-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.chart-status svg {
+  width: 14px;
+  height: 14px;
+}
+
+.chart-value-display {
+  text-align: right;
+}
+
+.current-value {
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1;
+  margin-bottom: 4px;
+}
+
+.value-unit {
+  font-size: 12px;
+  color: #6b7280;
+  font-weight: 500;
+}
+
+.chart-svg-container {
+  margin: 16px 0;
+  width: 100%;
+  height: 180px;
+}
+
+.professional-svg {
+  width: 100%;
+  height: 100%;
+}
+
+.chart-legend-container {
+  display: flex;
+  gap: 16px;
+  padding-top: 12px;
+  border-top: 1px solid #f3f4f6;
+  flex-wrap: wrap;
+}
+
+.legend-item-inline {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.legend-dot-inline {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.legend-line-inline {
+  width: 16px;
+  height: 0;
+  border-top: 2px dashed;
+}
+
+.legend-text {
+  white-space: nowrap;
+}
+
+/* Responsive grid for professional charts */
+@media (max-width: 1400px) {
+  .charts-grid-professional {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 900px) {
+  .charts-grid-professional {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* Motor Health Page Styles */
 .health-overview-section {
   display: grid;
@@ -975,5 +1114,120 @@
   
   .health-metrics-grid {
     grid-template-columns: 1fr;
+  }
+}
+/* Fix chart width - add to existing .chart-svg-container */
+.chart-svg-container {
+  margin: 16px 0;
+  width: 100%;
+  height: 180px;
+  overflow: visible;
+}
+
+/* Chart expand hint */
+.chart-expand-hint {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 12px;
+  font-size: 12px;
+  color: #9ca3af;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.professional-chart-card:hover .chart-expand-hint {
+  opacity: 1;
+}
+
+.professional-chart-card:hover {
+  cursor: pointer;
+}
+
+/* Modal styles */
+.chart-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.75);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  padding: 40px;
+  backdrop-filter: blur(4px);
+}
+
+.chart-modal-content {
+  background: white;
+  border-radius: 20px;
+  width: 100%;
+  max-width: 1200px;
+  max-height: 90vh;
+  overflow-y: auto;
+  padding: 32px;
+  position: relative;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  animation: modalSlideIn 0.3s ease-out;
+}
+
+@keyframes modalSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.chart-modal-close {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #f3f4f6;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: #6b7280;
+  font-size: 18px;
+  z-index: 10;
+}
+
+.chart-modal-close:hover {
+  background: #ef4444;
+  color: white;
+  transform: rotate(90deg);
+}
+
+.professional-chart-card.expanded {
+  box-shadow: none;
+  border: none;
+  padding: 0;
+}
+
+.professional-chart-card.expanded:hover {
+  transform: none;
+  box-shadow: none;
+}
+
+/* Responsive modal */
+@media (max-width: 768px) {
+  .chart-modal-overlay {
+    padding: 20px;
+  }
+  
+  .chart-modal-content {
+    padding: 24px;
   }
 }

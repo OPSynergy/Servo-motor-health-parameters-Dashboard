@@ -6,60 +6,37 @@ import {
   FaLayerGroup,
   FaDesktop,
   FaBell,
-  FaChevronLeft,
   FaUser
 } from 'react-icons/fa'
 import { MdLanguage } from 'react-icons/md'
+import mitsubishiLogo from '../assets/Mitsubishi_Electric-Logo_Full.png'
+import mitsubishiLogoCollapsed from '../assets/mitsubishi logo.png'
 import './Sidebar.css'
 
 const Sidebar = ({ activePage, setActivePage, collapsed, setCollapsed }) => {
   const menuItems = [
-    { id: 'home', label: 'Dashboard', icon: FaHome, hasNotification: true },
-    { id: 'maps', label: 'Maps', icon: FaMap },
-    { id: 'missions', label: 'Missions', icon: FaCog },
-    { id: 'actions', label: 'Actions', icon: FaLayerGroup },
-    { id: 'simple-screen', label: 'Simple Screen', icon: FaDesktop },
+    { id: 'home', label: 'Home', icon: FaHome, hasNotification: true },
+    { id: 'maps', label: 'Live Trends', icon: FaMap },
+    { id: 'missions', label: 'Alarms', icon: FaCog },
+    { id: 'actions', label: 'Maintenance', icon: FaLayerGroup },
   ]
 
   return (
     <aside className={`sidebar ${collapsed ? 'collapsed' : ''}`}>
       <div className="sidebar-header">
-        <div className="logo-container">
-          <div className="logo-icon">R</div>
-          {!collapsed && (
-            <div className="logo-text">
-              <span className="logo-peer">Peer</span>
-              <span className="logo-robotics">Robotics</span>
-            </div>
-          )}
+        <div 
+          className="logo-container"
+          onClick={() => setCollapsed(!collapsed)}
+          title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+          style={{ cursor: 'pointer' }}
+        >
+          <img 
+            src={collapsed ? mitsubishiLogoCollapsed : mitsubishiLogo} 
+            alt="Mitsubishi Electric Logo" 
+            className="logo-image"
+          />
         </div>
       </div>
-
-      {!collapsed && (
-        <div className="company-card">
-          <div className="company-card-content">
-            <div className="company-name">Peer Robotics</div>
-            <div className="company-location">Detroit, MI</div>
-          </div>
-          <button 
-            className="company-card-toggle"
-            onClick={() => setCollapsed(true)}
-            title="Collapse sidebar"
-          >
-            <FaChevronLeft />
-          </button>
-        </div>
-      )}
-
-      {collapsed && (
-        <button 
-          className="expand-sidebar-btn"
-          onClick={() => setCollapsed(false)}
-          title="Expand sidebar"
-        >
-          <FaChevronLeft className="rotate-180" />
-        </button>
-      )}
 
       <nav className="sidebar-nav">
         {menuItems.map((item) => {
@@ -80,18 +57,6 @@ const Sidebar = ({ activePage, setActivePage, collapsed, setCollapsed }) => {
           )
         })}
       </nav>
-
-      <div className="sidebar-footer">
-        <button className="footer-icon-btn" title="Avatar">
-          <FaUser className="footer-icon" />
-        </button>
-        <button className="footer-icon-btn" title="Language">
-          <MdLanguage className="footer-icon" />
-        </button>
-        <button className="footer-icon-btn" title="Notifications">
-          <FaBell className="footer-icon" />
-        </button>
-      </div>
     </aside>
   )
 }
