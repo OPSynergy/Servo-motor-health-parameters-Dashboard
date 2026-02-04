@@ -6,7 +6,8 @@ import {
   FaLayerGroup,
   FaDesktop,
   FaBell,
-  FaUser
+  FaUser,
+  FaHeartbeat
 } from 'react-icons/fa'
 import { MdLanguage } from 'react-icons/md'
 import mitsubishiLogo from '../assets/Mitsubishi_Electric-Logo_Full.png'
@@ -16,6 +17,7 @@ import './Sidebar.css'
 const Sidebar = ({ activePage, setActivePage, collapsed, setCollapsed }) => {
   const menuItems = [
     { id: 'home', label: 'Home', icon: FaHome, hasNotification: true },
+    { id: 'motor-health', label: 'Motor Health', icon: FaHeartbeat },
     { id: 'maps', label: 'Live Trends', icon: FaMap },
     { id: 'missions', label: 'Alarms', icon: FaCog },
     { id: 'actions', label: 'Maintenance', icon: FaLayerGroup },
