@@ -1,9 +1,30 @@
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap');
+
 .page-container {
   width: 100%;
   max-width: 1400px;
   margin: 0 auto;
+  position: relative;
 }
 
+.home-logo-container {
+  position: fixed; /* Changed to fixed */
+  top: 20px;
+  left: 300px; /* Position it right after the sidebar */
+  z-index: 1000;
+  transition: left 0.3s ease;
+}
+
+.home-logo {
+  max-width: 150px;
+  height: auto;
+  object-fit: contain;
+}
+
+/* When sidebar is closed/collapsed */
+.sidebar-collapsed .home-logo-container {
+  left: 100px; /* Adjust based on collapsed sidebar width */
+}
 .page-title {
   font-size: 32px;
   font-weight: bold;
@@ -1230,4 +1251,76 @@
   .chart-modal-content {
     padding: 24px;
   }
+}
+.home-logo-container {
+  position: fixed;
+  top: 20px;
+  left: 270px; /* Adjust based on your sidebar width */
+  padding: 20px;
+  z-index: 1000;
+}
+
+.home-logo-container-right {
+  position: fixed;
+  top: -35px;
+  right: 20px;
+  padding: 20px;
+  z-index: 1000;
+}
+
+.home-logo-container-right .home-logo {
+  max-width: 300px; /* Adjust this value to increase/decrease logo size */
+  width: 280px; /* Force the width */
+  height: auto;
+  object-fit: contain;
+}
+
+.home-logo {
+  max-width: 150px;
+  height: auto;
+  object-fit: contain;
+}
+.home-header-center {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  text-align: center;
+  z-index: 1000;
+  font-family: 'Bebas Neue', sans-serif;
+}
+
+.team-name {
+  font-size: 64px;
+  font-weight: 400;
+  margin: 0;
+  margin-bottom: 0;
+  color: #000000;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.7);
+  line-height: 1.1;
+}
+
+.team-number {
+  font-size: 56px;
+  font-weight: 400;
+  margin: 0;
+  margin-bottom: 30px;
+  color: #000000;
+  letter-spacing: 6px;
+  text-transform: uppercase;
+  text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.7);
+  line-height: 1.1;
+}
+
+.topic-name {
+  font-size: 50px;
+  font-weight: 400;
+  margin: 0;
+  color: #000000;
+  letter-spacing: 3px;
+  text-transform: capitalize;
+  text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.7);
+  line-height: 1.2;
 }

@@ -17,13 +17,11 @@ function App() {
       case 'home':
         return <Home />
       case 'maps':
-        return <Home />
+        return <LiveDataTrends />
       case 'missions':
-        return <Home />
+        return <Alarms />
       case 'actions':
-        return <Home />
-      case 'simple-screen':
-        return <Home />
+        return <Maintenance />
       case 'motor-health':
         return <MotorHealth />
       case 'alarms':
