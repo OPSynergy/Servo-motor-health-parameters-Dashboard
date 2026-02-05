@@ -10,7 +10,7 @@ import {
   FaHeartbeat
 } from 'react-icons/fa'
 import { MdLanguage } from 'react-icons/md'
-import mitsubishiLogo from '../assets/Mitsubishi_Electric-Logo_Full.png'
+import mitsubishiLogo from '../assets/mitsubishi-electric-changes-for-the-better-logo-png_seeklogo-93542-removebg-preview.png'
 import mitsubishiLogoCollapsed from '../assets/mitsubishi logo.png'
 import './Sidebar.css'
 

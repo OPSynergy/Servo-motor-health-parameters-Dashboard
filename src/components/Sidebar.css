@@ -44,6 +44,7 @@
   justify-content: flex-start;
   width: 100%;
   padding: 0;
+  top: -20px;
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s ease;
 }
 
@@ -60,9 +61,10 @@
 .logo-image {
   width: 100%;
   height: auto;
-  max-width: 320px;
+  max-width: 300px;
   object-fit: contain;
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  margin-top: -10px;
 }
 
 .sidebar.collapsed .logo-image {

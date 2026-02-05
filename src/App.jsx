@@ -11,7 +11,7 @@ import './App.css'
 
 function App() {
   const [activePage, setActivePage] = useState('home')
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(true)
 
   const renderPage = () => {
     switch (activePage) {

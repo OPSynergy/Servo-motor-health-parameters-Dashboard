@@ -1,6 +1,6 @@
 import { Canvas } from '@react-three/fiber'
 import { OrbitControls, useGLTF } from '@react-three/drei'
-import { Suspense } from 'react'
+import { Suspense, useState } from 'react'
 
 function Model() {
   const { scene } = useGLTF('/model.glb')
@@ -8,13 +8,15 @@ function Model() {
     <primitive
       object={scene}
       scale={0.006}
-      position={[0, -3, 0]}    // Lower
+      position={[0, -3, 0]}
       rotation={[-Math.PI / 2, 0, 0]}
     />
   )
 }
 
 export default function Hero3D() {
+  const [isRotating, setIsRotating] = useState(true)
+
   return (
     <div
       style={{
@@ -24,9 +26,27 @@ export default function Hero3D() {
         width: "100vw",
         height: "100vh",
         zIndex: 0,
-        pointerEvents: "none"
+        pointerEvents: "auto"
       }}
     >
+      {/* ADD THE BUTTON HERE - before Canvas */}
+      <button
+        onClick={() => setIsRotating(!isRotating)}
+        style={{
+          position: "absolute",
+          top: 20,
+          right: 20,
+          zIndex: 10,
+          padding: "10px 20px",
+          cursor: "pointer",
+          backgroundColor: "white",
+          border: "2px solid black",
+          borderRadius: "5px"
+        }}
+      >
+        {isRotating ? "Pause" : "Play"}
+      </button>
+
       <Canvas
         camera={{ 
           position: [0, -1, 8],
@@ -45,7 +65,8 @@ export default function Hero3D() {
           <OrbitControls
             enableZoom={false}
             enablePan={false}
-            autoRotate
+            enableRotate={true}
+            autoRotate={isRotating}
             autoRotateSpeed={1.2}
             target={[0, -1.5, 0]}
           />
