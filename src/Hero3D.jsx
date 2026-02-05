@@ -29,7 +29,7 @@ export default function Hero3D() {
     >
       <Canvas
         camera={{ 
-          position: [0, 0.5, 8],
+          position: [0, -1, 8],
           fov: 50
         }}
         gl={{ antialias: true }}
