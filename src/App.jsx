@@ -6,6 +6,7 @@ import Alarms from './pages/Alarms'
 import Maintenance from './pages/Maintenance'
 import LiveDataTrends from './pages/LiveDataTrends'
 import Settings from './pages/Settings'
+import Hero3D from './Hero3D'
 import './App.css'
 
 function App() {
@@ -38,17 +39,23 @@ function App() {
   }
 
   return (
-    <div className="app-container">
-      <Sidebar
-        activePage={activePage}
-        setActivePage={setActivePage}
-        collapsed={sidebarCollapsed}
-        setCollapsed={setSidebarCollapsed}
-      />
-      <main className={`main-content ${sidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
-        {renderPage()}
-      </main>
-    </div>
+    <>
+      {/* 3D Background */}
+      <Hero3D />
+
+      <div className="app-container" style={{ position: "relative", zIndex: 1 }}>
+        <Sidebar
+          activePage={activePage}
+          setActivePage={setActivePage}
+          collapsed={sidebarCollapsed}
+          setCollapsed={setSidebarCollapsed}
+        />
+
+        <main className={`main-content ${sidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
+          {renderPage()}
+        </main>
+      </div>
+    </>
   )
 }
 

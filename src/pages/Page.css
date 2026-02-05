@@ -1324,3 +1324,46 @@
   text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.7);
   line-height: 1.2;
 }
+.home-header-center {
+  position: fixed;
+  top: 80px; /* Increased from 20px to give more space */
+  left: 50%;
+  transform: translateX(-50%);
+  text-align: center;
+  z-index: 999; /* Lower than logos but visible */
+  font-family: 'Bebas Neue', sans-serif;
+  width: 80%; /* Constrain width */
+  max-width: 1200px;
+}
+
+.team-name {
+  font-size: 56px; /* Slightly reduced */
+  font-weight: 400;
+  margin: 0;
+  margin-bottom: 5px;
+  color: #000; /* Changed to black for visibility */
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  line-height: 1.1;
+}
+
+.team-number {
+  font-size: 48px; /* Slightly reduced */
+  font-weight: 400;
+  margin: 0;
+  margin-bottom: 25px;
+  color: #000; /* Changed to black */
+  letter-spacing: 6px;
+  text-transform: uppercase;
+  line-height: 1.1;
+}
+
+.topic-name {
+  font-size: 52px; /* Slightly reduced */
+  font-weight: 400;
+  margin: 0;
+  color: #000; /* Changed to black */
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  line-height: 1.2;
+}
