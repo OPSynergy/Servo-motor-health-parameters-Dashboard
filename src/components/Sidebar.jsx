@@ -1,26 +1,23 @@
 import { useState } from 'react'
 import { 
-  FaHome, 
-  FaMap,
-  FaCog,
-  FaLayerGroup,
-  FaDesktop,
-  FaBell,
-  FaUser,
-  FaHeartbeat
-} from 'react-icons/fa'
-import { MdLanguage } from 'react-icons/md'
+  Home,
+  Activity,
+  TrendingUp,
+  Bell,
+  Settings,
+  Wrench
+} from 'lucide-react'
 import mitsubishiLogo from '../assets/mitsubishi-electric-changes-for-the-better-logo-png_seeklogo-93542-removebg-preview.png'
 import mitsubishiLogoCollapsed from '../assets/mitsubishi logo.png'
 import './Sidebar.css'
 
 const Sidebar = ({ activePage, setActivePage, collapsed, setCollapsed }) => {
   const menuItems = [
-    { id: 'home', label: 'Home', icon: FaHome, hasNotification: true },
-    { id: 'motor-health', label: 'Motor Health', icon: FaHeartbeat },
-    { id: 'maps', label: 'Live Trends', icon: FaMap },
-    { id: 'missions', label: 'Alarms', icon: FaCog },
-    { id: 'actions', label: 'Maintenance', icon: FaLayerGroup },
+    { id: 'home', label: 'Home', icon: Home, hasNotification: true },
+    { id: 'motor-health', label: 'Motor Health', icon: Activity },
+    { id: 'maps', label: 'Live Trends', icon: TrendingUp },
+    { id: 'missions', label: 'Alarms', icon: Bell },
+    { id: 'actions', label: 'Maintenance', icon: Wrench },
   ]
 
   return (
@@ -50,7 +47,7 @@ const Sidebar = ({ activePage, setActivePage, collapsed, setCollapsed }) => {
               onClick={() => setActivePage(item.id)}
               title={collapsed ? item.label : ''}
             >
-              <Icon className="nav-icon" />
+              <Icon className="nav-icon" size={22} strokeWidth={2} />
               {!collapsed && <span className="nav-label">{item.label}</span>}
               {item.hasNotification && !collapsed && (
                 <span className="notification-dot"></span>

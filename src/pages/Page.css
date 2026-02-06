@@ -1,4 +1,24 @@
 @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap');
+/* Force visibility for all page content */
+.page-container {
+  position: relative;
+  z-index: 1;
+}
+
+.modern-dashboard {
+  position: relative;
+  z-index: 1;
+}
+
+/* Make sure text is visible */
+.team-name,
+.team-number,
+.topic-name {
+  color: #000 !important;
+  text-shadow: 2px 2px 4px rgba(255, 255, 255, 0.8) !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
 
 .page-container {
   width: 100%;
@@ -8,11 +28,20 @@
 }
 
 .home-logo-container {
-  position: fixed; /* Changed to fixed */
+  position: fixed;
   top: 20px;
-  left: 300px; /* Position it right after the sidebar */
-  z-index: 1000;
-  transition: left 0.3s ease;
+  left: 300px;
+  z-index: 2000;
+  transition: left 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  pointer-events: auto;
+  visibility: visible;
+  opacity: 1;
+}
+
+/* Adjust when sidebar is collapsed */
+.main-content.sidebar-collapsed ~ * .home-logo-container,
+body:has(.sidebar-collapsed) .home-logo-container {
+  left: 100px;
 }
 
 .home-logo {
@@ -21,9 +50,10 @@
   object-fit: contain;
 }
 
-/* When sidebar is closed/collapsed */
-.sidebar-collapsed .home-logo-container {
-  left: 100px; /* Adjust based on collapsed sidebar width */
+/* When sidebar is closed/collapsed - adjust logo position */
+.app-container:has(.sidebar.collapsed) ~ * .home-logo-container,
+body:has(.sidebar-collapsed) .home-logo-container {
+  left: 100px;
 }
 .page-title {
   font-size: 32px;
@@ -1252,20 +1282,14 @@
     padding: 24px;
   }
 }
-.home-logo-container {
-  position: fixed;
-  top: 20px;
-  left: 270px; /* Adjust based on your sidebar width */
-  padding: 20px;
-  z-index: 1000;
-}
-
 .home-logo-container-right {
   position: fixed;
-  top: -35px;
+  top: 20px;
   right: 20px;
   padding: 20px;
-  z-index: 1000;
+  z-index: 2000;
+  pointer-events: auto;
+  visibility: visible;
 }
 
 .home-logo-container-right .home-logo {
@@ -1282,17 +1306,21 @@
 }
 .home-header-center {
   position: fixed;
-  top: 20px;
+  top: 80px;
   left: 50%;
   transform: translateX(-50%);
   text-align: center;
-  z-index: 1000;
+  z-index: 2000;
   font-family: 'Bebas Neue', sans-serif;
+  width: 80%;
+  max-width: 1200px;
+  pointer-events: auto;
+  visibility: visible;
 }
 
 .team-name {
-  font-size: 64px;
-  font-weight: 400;
+  font-size: 80px;
+  font-weight: 800;
   margin: 0;
   margin-bottom: 0;
   color: #000000;
@@ -1324,22 +1352,11 @@
   text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.7);
   line-height: 1.2;
 }
-.home-header-center {
-  position: fixed;
-  top: 80px; /* Increased from 20px to give more space */
-  left: 50%;
-  transform: translateX(-50%);
-  text-align: center;
-  z-index: 999; /* Lower than logos but visible */
-  font-family: 'Bebas Neue', sans-serif;
-  width: 80%; /* Constrain width */
-  max-width: 1200px;
-}
-
 .team-name {
-  font-size: 56px; /* Slightly reduced */
+  font-size: 80px; /* Slightly reduced */
   font-weight: 400;
   margin: 0;
+  margin-top: -40px; /* Lifts it up */
   margin-bottom: 5px;
   color: #000; /* Changed to black for visibility */
   letter-spacing: 4px;
@@ -1348,9 +1365,10 @@
 }
 
 .team-number {
-  font-size: 48px; /* Slightly reduced */
+  font-size: 52px; /* Slightly reduced */
   font-weight: 400;
   margin: 0;
+  margin-top: 10px; /* Lifts it up */
   margin-bottom: 25px;
   color: #000; /* Changed to black */
   letter-spacing: 6px;
@@ -1359,11 +1377,228 @@
 }
 
 .topic-name {
-  font-size: 52px; /* Slightly reduced */
+  font-size: 55px; /* Slightly reduced */
   font-weight: 400;
   margin: 0;
+  margin-top: 10px; /* Lifts it up */
   color: #000; /* Changed to black */
   letter-spacing: 3px;
   text-transform: uppercase;
   line-height: 1.2;
+}
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap');
+
+.page-container {
+  width: 100%;
+  max-width: 1400px;
+  margin: 0 auto;
+  position: relative;
+  z-index: 10;  /* Above 3D canvas */
+  pointer-events: none;  /* Let clicks pass through container */
+}
+
+/* Make interactive elements clickable */
+.page-container * {
+  pointer-events: auto;
+}
+
+.home-logo-container {
+  position: fixed;
+  top: 20px;
+  left: 300px;
+  z-index: 100;
+  transition: left 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.sidebar.collapsed ~ * .home-logo-container {
+  left: 100px;
+}
+
+.home-logo-container img {
+  width: 180px;
+  height: auto;
+  display: block;
+}
+
+.home-logo-container-right {
+  position: fixed;
+  top: 20px;
+  right: 40px;
+  z-index: 100;
+}
+
+.home-logo-container-right img {
+  width: 280px;
+  height: auto;
+  display: block;
+}
+
+.home-header-center {
+  position: absolute;
+  top: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  text-align: center;
+  z-index: 100;
+  margin-top: -60px;
+}
+
+.team-name {
+  font-size: 80px;
+  font-weight: 400;
+  margin: 0;
+  margin-top: -40px;
+  margin-bottom: 5px;
+  color: #000;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  line-height: 1.1;
+}
+
+.team-number {
+  font-size: 52px;
+  font-weight: 400;
+  margin: 0;
+  margin-top: -20px;
+  margin-bottom: 25px;
+  color: #000;
+  letter-spacing: 6px;
+  text-transform: uppercase;
+  line-height: 1.1;
+}
+
+.topic-name {
+  font-size: 55px;
+  font-weight: 400;
+  margin: 0;
+  margin-top: -30px;
+  color: #000;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  line-height: 1.2;
+}
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap');
+
+.page-container {
+  width: 100%;
+  max-width: 1400px;
+  margin: 0 auto;
+  position: relative;
+  z-index: 10;
+}
+
+.home-logo-container {
+  position: fixed;
+  top: 20px;
+  left: 300px;
+  z-index: 100;
+  transition: left 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  pointer-events: auto;
+}
+
+.sidebar.collapsed ~ * .home-logo-container {
+  left: 100px;
+}
+
+.home-logo-container img {
+  width: 180px;
+  height: auto;
+  display: block;
+}
+
+.home-logo-container-right {
+  position: fixed;
+  top: -40px;
+  right: 40px;
+  z-index: 100;
+  pointer-events: auto;
+}
+
+.home-logo-container-right img {
+  width: 280px;
+  height: auto;
+  display: block;
+}
+
+.home-header-center {
+  position: absolute;
+  top: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  text-align: center;
+  z-index: 100;
+  margin-top: -60px;
+  pointer-events: none;  /* Let clicks pass through */
+}
+
+.team-name {
+  font-size: 80px;
+  font-weight: 400;
+  margin: 0;
+  margin-top: -20px;
+  margin-bottom: 5px;
+  color: #000;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  line-height: 1.1;
+}
+
+.team-number {
+  font-size: 52px;
+  font-weight: 400;
+  margin: 0;
+  margin-top: 10px;
+  margin-bottom: 25px;
+  color: #000;
+  letter-spacing: 6px;
+  text-transform: uppercase;
+  line-height: 1.1;
+}
+
+.topic-name {
+  font-size: 55px;
+  font-weight: 400;
+  margin: 0;
+  margin-top: 20px;
+  color: #000;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  line-height: 1.2;
+}
+.page-container {
+  pointer-events: none;  /* Container doesn't block */
+}
+
+.page-container > * {
+  pointer-events: auto;  /* Children are interactive */
+}
+
+.home-header-center {
+  pointer-events: auto;  /* Text area receives clicks if needed */
+}
+/* CRITICAL: Force specific elements to be interactive */
+.home-logo-container,
+.home-logo-container-right,
+.home-header-center {
+  pointer-events: auto !important;
+  position: fixed !important;
+}
+
+/* Everything else in page-container should not block */
+.page-container {
+  pointer-events: none !important;
+}
+
+.page-container * {
+  pointer-events: none !important;
+}
+
+/* Re-enable for logos only */
+.home-logo-container,
+.home-logo-container img,
+.home-logo-container-right,
+.home-logo-container-right img,
+.home-header-center,
+.home-header-center * {
+  pointer-events: auto !important;
 }

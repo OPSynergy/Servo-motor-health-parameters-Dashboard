@@ -1,24 +1,52 @@
-.app-container {
-  display: flex;
+html, body, #root {
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+}
+
+.app-wrapper {
+  position: relative;
   width: 100%;
   height: 100vh;
   overflow: hidden;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Helvetica Neue", Arial, sans-serif;
+  background: #ffffff;
 }
 
+/* 3D Canvas - sits behind everything */
+.hero-3d-container {
+  pointer-events: auto !important;
+}
+
+/* Main content - floats on top */
 .main-content {
-  flex: 1;
-  margin-left: 280px;
-  transition: margin-left 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  position: absolute;
+  top: 0;
+  left: 280px;
+  right: 0;
+  bottom: 0;
+  transition: left 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   padding: 32px;
+  padding-top: 0;
   overflow-y: auto;
-  background: linear-gradient(to bottom, #fafafa 0%, transparent 100%);
+  background: transparent;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Helvetica Neue", Arial, sans-serif;
-  min-height: 100vh;
+  z-index: 100;
+  pointer-events: none;  /* Critical: let clicks pass through */
 }
 
 .main-content.sidebar-collapsed {
-  margin-left: 80px;
+  left: 80px;
+}
+
+/* Only specific elements should capture clicks */
+.main-content .page-container {
+  pointer-events: none;
+}
+
+.main-content .home-logo-container,
+.main-content .home-logo-container-right,
+.main-content .home-header-center {
+  pointer-events: auto;
 }
 
 /* Smooth scrollbar */
@@ -27,25 +55,14 @@
 }
 
 .main-content::-webkit-scrollbar-track {
-  background: #f1f1f1;
+  background: rgba(241, 241, 241, 0.3);
 }
 
 .main-content::-webkit-scrollbar-thumb {
-  background: #d1d5db;
+  background: rgba(209, 213, 219, 0.5);
   border-radius: 4px;
 }
 
 .main-content::-webkit-scrollbar-thumb:hover {
-  background: #9ca3af;
-}
-html, body, #root {
-  height: 100%;
-  margin: 0;
-  overflow: hidden;
-}
-.main-content {
-  background: linear-gradient(
-    rgba(255,255,255,0.6),
-    rgba(0,0,0,0.4)
-  );
+  background: rgba(156, 163, 175, 0.7);
 }

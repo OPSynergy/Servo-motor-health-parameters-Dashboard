@@ -39,23 +39,23 @@ function App() {
   }
 
   return (
-    <>
-      {/* 3D Background */}
+    <div className="app-wrapper">
+      {/* Layer 1: 3D Background (z-index: 1) */}
       <Hero3D />
 
-      <div className="app-container" style={{ position: "relative", zIndex: 1 }}>
-        <Sidebar
-          activePage={activePage}
-          setActivePage={setActivePage}
-          collapsed={sidebarCollapsed}
-          setCollapsed={setSidebarCollapsed}
-        />
+      {/* Layer 2: Sidebar (z-index: 1000 from Sidebar.css) */}
+      <Sidebar
+        activePage={activePage}
+        setActivePage={setActivePage}
+        collapsed={sidebarCollapsed}
+        setCollapsed={setSidebarCollapsed}
+      />
 
-        <main className={`main-content ${sidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
-          {renderPage()}
-        </main>
-      </div>
-    </>
+      {/* Layer 3: Content (z-index: 100) */}
+      <main className={`main-content ${sidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
+        {renderPage()}
+      </main>
+    </div>
   )
 }
 

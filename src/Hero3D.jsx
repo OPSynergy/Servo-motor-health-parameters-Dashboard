@@ -8,7 +8,7 @@ function Model() {
     <primitive
       object={scene}
       scale={0.007}
-      position={[0, -3, 0]}
+      position={[0, -1.5, 0]}
       rotation={[-Math.PI / 2, 0, 0]}
     />
   )
@@ -17,10 +17,15 @@ function Model() {
 export default function Hero3D() {
   return (
     <div
+      className="hero-3d-container"
       style={{
-        width: "100vw",
+        position: "fixed",
+        top: 0,
+        left: 80,
+        width: "calc(100vw - 80px)",
         height: "100vh",
-        background: "#ffffff"
+        background: "#ffffff",
+        zIndex: 1
       }}
     >
       <Canvas
@@ -32,47 +37,31 @@ export default function Hero3D() {
           alpha: true,
           antialias: true 
         }}
-        style={{ background: '#ffffff' }}
       >
         <color attach="background" args={['#ffffff']} />
         
         <Suspense fallback={null}>
-          {/* Ambient light - base illumination */}
           <ambientLight intensity={2} />
-          
-          {/* Directional lights from all sides */}
-          {/* Front */}
           <directionalLight position={[0, 5, 10]} intensity={2} />
-          {/* Back */}
           <directionalLight position={[0, 5, -10]} intensity={2} />
-          {/* Left */}
           <directionalLight position={[-10, 5, 0]} intensity={2} />
-          {/* Right */}
           <directionalLight position={[10, 5, 0]} intensity={2} />
-          {/* Top */}
           <directionalLight position={[0, 15, 0]} intensity={1.5} />
-          
-          {/* Corner lights for even coverage */}
           <directionalLight position={[10, 10, 10]} intensity={1.5} />
           <directionalLight position={[-10, 10, 10]} intensity={1.5} />
           <directionalLight position={[10, 10, -10]} intensity={1.5} />
           <directionalLight position={[-10, 10, -10]} intensity={1.5} />
-          
-          {/* Point lights around the model */}
           <pointLight position={[5, 0, 5]} intensity={1.5} />
           <pointLight position={[-5, 0, 5]} intensity={1.5} />
           <pointLight position={[5, 0, -5]} intensity={1.5} />
           <pointLight position={[-5, 0, -5]} intensity={1.5} />
-          
-          {/* Spot light from top for focus */}
           <spotLight 
             position={[0, 10, 0]} 
-            intensity={1.5}
+            intensity={2}
             angle={0.6}
             penumbra={1}
           />
           
-          {/* Black tinted grid floor */}
           <Grid
             args={[30, 30]}
             cellSize={1}
@@ -86,7 +75,6 @@ export default function Hero3D() {
             position={[0, -3, 0]}
           />
           
-          {/* Semi-transparent black plane under the grid for tint effect */}
           <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -3.01, 0]} receiveShadow>
             <planeGeometry args={[100, 100]} />
             <meshStandardMaterial 
@@ -98,24 +86,33 @@ export default function Hero3D() {
           
           <Model />
           
-          <OrbitControls />
+          <OrbitControls 
+            target={[0, -1.5, 0]}
+            enableZoom={true}
+            enablePan={true}
+            enableRotate={true}
+          />
         </Suspense>
       </Canvas>
       
-      {/* Instructions */}
+      {/* 3D Controls indicator */}
       <div
         style={{
           position: "absolute",
           bottom: 20,
-          left: 20,
-          color: "#000000",
+          right: 20,
+          color: "#666",
           background: "rgba(255,255,255,0.9)",
-          padding: "15px",
+          padding: "10px 15px",
           borderRadius: "8px",
-          fontSize: "14px",
-          border: "1px solid #ddd"
+          fontSize: "13px",
+          border: "1px solid #ddd",
+          pointerEvents: "none"
         }}
       >
+        <div>🖱️ Drag: Rotate</div>
+        <div>🖱️ Right: Pan</div>
+        <div>🖱️ Scroll: Zoom</div>
       </div>
     </div>
   )
