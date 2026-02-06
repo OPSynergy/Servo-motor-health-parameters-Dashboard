@@ -1346,6 +1346,7 @@ body:has(.sidebar-collapsed) .home-logo-container {
   font-size: 50px;
   font-weight: 400;
   margin: 0;
+  margin-top: 20px;
   color: #000000;
   letter-spacing: 3px;
   text-transform: capitalize;
@@ -1380,7 +1381,7 @@ body:has(.sidebar-collapsed) .home-logo-container {
   font-size: 55px; /* Slightly reduced */
   font-weight: 400;
   margin: 0;
-  margin-top: 10px; /* Lifts it up */
+  margin-top: 20px; /* Lifts it up */
   color: #000; /* Changed to black */
   letter-spacing: 3px;
   text-transform: uppercase;
@@ -1471,7 +1472,7 @@ body:has(.sidebar-collapsed) .home-logo-container {
   font-size: 55px;
   font-weight: 400;
   margin: 0;
-  margin-top: -30px;
+  margin-top: 10px;
   color: #000;
   letter-spacing: 3px;
   text-transform: uppercase;
@@ -1559,7 +1560,7 @@ body:has(.sidebar-collapsed) .home-logo-container {
   font-size: 55px;
   font-weight: 400;
   margin: 0;
-  margin-top: 20px;
+  margin-top: 5px;
   color: #000;
   letter-spacing: 3px;
   text-transform: uppercase;

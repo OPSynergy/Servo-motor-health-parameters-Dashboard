@@ -110,9 +110,6 @@ export default function Hero3D() {
           pointerEvents: "none"
         }}
       >
-        <div>🖱️ Drag: Rotate</div>
-        <div>🖱️ Right: Pan</div>
-        <div>🖱️ Scroll: Zoom</div>
       </div>
     </div>
   )
