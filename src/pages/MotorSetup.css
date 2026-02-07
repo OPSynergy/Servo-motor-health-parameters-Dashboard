@@ -1,0 +1,250 @@
+* {
+    box-sizing: border-box;
+  }
+  
+  .motor-setup-container {
+    width: 100%;
+    min-height: 100vh;
+    background-color: #f8f9fa;
+    padding: 40px;
+    position: relative;
+  }
+  
+  .page-title {
+    text-align: center;
+    color: #2c3e50;
+    font-size: 2.5rem;
+    margin: 0 0 40px 0;
+    font-weight: 700;
+  }
+  
+  .motors-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 30px;
+    max-width: 1400px;
+    margin: 0 auto;
+  }
+  
+  /* Motor Card */
+  .motor-card {
+    background: white;
+    border-radius: 16px;
+    padding: 20px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    transition: transform 0.3s;
+  }
+  
+  .motor-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+  }
+  
+  .motor-image {
+    width: 100%;
+    height: 250px;
+    border-radius: 12px;
+    overflow: hidden;
+    background: #e9ecef;
+    margin-bottom: 15px;
+  }
+  
+  .motor-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  
+  .motor-name {
+    margin: 0;
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: #2c3e50;
+    text-align: center;
+  }
+  
+  /* Add Motor Card */
+  .add-motor-card {
+    background: white;
+    border-radius: 16px;
+    padding: 20px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .add-motor-btn {
+    width: 100%;
+    height: 100%;
+    min-height: 300px;
+    border: 4px dashed #cbd5e0;
+    border-radius: 12px;
+    background: #f8f9fa;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 15px;
+    transition: all 0.3s;
+    padding: 20px;
+    position: relative;
+    z-index: 1;
+  }
+  
+  .add-motor-btn:hover {
+    border-color: #4CAF50;
+    background: #e8f5e9;
+  }
+  
+  .plus-icon {
+    font-size: 80px;
+    font-weight: 200;
+    color: #95a5a6;
+    line-height: 1;
+  }
+  
+  .add-motor-btn:hover .plus-icon {
+    color: #4CAF50;
+  }
+  
+  .add-text {
+    font-size: 1.3rem;
+    font-weight: 600;
+    color: #95a5a6;
+  }
+  
+  .add-motor-btn:hover .add-text {
+    color: #4CAF50;
+  }
+  
+  /* Form Card */
+  .motor-form-card {
+    background: white;
+    border-radius: 16px;
+    padding: 25px;
+    box-shadow: 0 8px 24px rgba(76, 175, 80, 0.2);
+    border: 3px solid #4CAF50;
+  }
+  
+  .form-title {
+    margin: 0 0 25px 0;
+    color: #2c3e50;
+    font-size: 1.5rem;
+    font-weight: 700;
+    text-align: center;
+  }
+  
+  .form-group {
+    margin-bottom: 20px;
+  }
+  
+  .image-upload-label {
+    display: block;
+    width: 100%;
+    height: 250px;
+    border: 3px dashed #cbd5e0;
+    border-radius: 12px;
+    cursor: pointer;
+    overflow: hidden;
+    background: #f8f9fa;
+    transition: all 0.3s;
+    position: relative;
+  }
+  
+  .image-upload-label:hover {
+    border-color: #4CAF50;
+    background: #e8f5e9;
+  }
+  
+  .preview-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  
+  .upload-placeholder {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: #95a5a6;
+  }
+  
+  .upload-icon {
+    font-size: 60px;
+    margin-bottom: 10px;
+  }
+  
+  .upload-placeholder span {
+    font-size: 1rem;
+    font-weight: 500;
+  }
+  
+  .motor-name-input {
+    width: 100%;
+    padding: 15px;
+    border: 2px solid #e0e0e0;
+    border-radius: 10px;
+    font-size: 1.1rem;
+    transition: border-color 0.3s;
+    font-family: inherit;
+  }
+  
+  .motor-name-input:focus {
+    outline: none;
+    border-color: #4CAF50;
+  }
+  
+  .form-actions {
+    display: flex;
+    gap: 15px;
+    margin-top: 25px;
+  }
+  
+  .btn-cancel,
+  .btn-save {
+    flex: 1;
+    padding: 15px;
+    border: none;
+    border-radius: 10px;
+    font-size: 1.1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+    font-family: inherit;
+  }
+  
+  .btn-cancel {
+    background: #e9ecef;
+    color: #495057;
+  }
+  
+  .btn-cancel:hover {
+    background: #dee2e6;
+  }
+  
+  .btn-save {
+    background: #4CAF50;
+    color: white;
+  }
+  
+  .btn-save:hover {
+    background: #45a049;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(76, 175, 80, 0.4);
+  }
+  
+  @media (max-width: 768px) {
+    .motors-grid {
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 20px;
+    }
+    
+    .motor-setup-container {
+      padding: 20px;
+    }
+  }

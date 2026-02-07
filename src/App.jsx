@@ -9,13 +9,14 @@ import Settings from './pages/Settings'
 import LiveTrendsGraph from './components/LiveTrendsGraph'
 import Hero3D from './Hero3D'
 import './App.css'
+import MotorSetup from './pages/MotorSetup'
 
 function App() {
   const [activePage, setActivePage] = useState('home')
   const [sidebarCollapsed, setSidebarCollapsed] = useState(true)
 
   const renderPage = () => {
-    switch (activePage) {
+    switch (activePage) { 
       case 'home':
         return <Home />
       case 'maps':
@@ -42,6 +43,8 @@ function App() {
         return <LiveDataTrends />
       case 'settings':
         return <Settings />
+      case 'motor-setup':
+        return <MotorSetup />
       default:
         return <Home />
     }
