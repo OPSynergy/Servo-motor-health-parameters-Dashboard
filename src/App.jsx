@@ -6,6 +6,7 @@ import Alarms from './pages/Alarms'
 import Maintenance from './pages/Maintenance'
 import LiveDataTrends from './pages/LiveDataTrends'
 import Settings from './pages/Settings'
+import LiveTrendsGraph from './components/LiveTrendsGraph'
 import Hero3D from './Hero3D'
 import './App.css'
 
@@ -19,6 +20,14 @@ function App() {
         return <Home />
       case 'maps':
         return <LiveDataTrends />
+      case 'vibration':
+        return <LiveTrendsGraph type="vibration" />
+      case 'temperature':
+        return <LiveTrendsGraph type="temperature" />
+      case 'current-consumption':
+        return <LiveTrendsGraph type="current-consumption" />
+      case 'belt-tension':
+        return <LiveTrendsGraph type="belt-tension" />
       case 'missions':
         return <Alarms />
       case 'actions':
