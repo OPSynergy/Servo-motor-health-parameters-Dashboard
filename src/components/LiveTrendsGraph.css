@@ -47,12 +47,23 @@
     transform: translateY(-2px);
   }
   
+  .stat-card-editable {
+    min-width: 250px;
+  }
+  
   .stat-label {
     font-size: 13px;
     color: #6b7280;
     font-weight: 500;
     text-transform: uppercase;
     letter-spacing: 0.5px;
+  }
+  
+  .stat-value-container {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
   }
   
   .stat-value {
@@ -71,6 +82,68 @@
   
   .stat-value.critical {
     color: #dc2626;
+  }
+  
+  .level-input {
+    width: 80px;
+    padding: 8px 12px;
+    border: 2px solid #3b82f6;
+    border-radius: 8px;
+    font-size: 18px;
+    font-weight: 600;
+    outline: none;
+    transition: all 0.2s ease;
+  }
+  
+  .level-input:focus {
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  }
+  
+  .edit-btn, .set-btn, .cancel-btn {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  
+  .edit-btn {
+    background-color: #3b82f6;
+    color: white;
+  }
+  
+  .edit-btn:hover {
+    background-color: #2563eb;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(59, 130, 246, 0.3);
+  }
+  
+  .set-btn {
+    background-color: #10b981;
+    color: white;
+  }
+  
+  .set-btn:hover {
+    background-color: #059669;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(16, 185, 129, 0.3);
+  }
+  
+  .cancel-btn {
+    background-color: #ef4444;
+    color: white;
+    padding: 8px 12px;
+  }
+  
+  .cancel-btn:hover {
+    background-color: #dc2626;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(239, 68, 68, 0.3);
   }
   
   .graph-container {
@@ -102,6 +175,10 @@
       padding: 18px 24px;
     }
   
+    .stat-card-editable {
+      min-width: 230px;
+    }
+  
     .stat-value {
       font-size: 24px;
     }
@@ -127,6 +204,10 @@
   
     .stat-card {
       width: 100%;
+      min-width: auto;
+    }
+  
+    .stat-card-editable {
       min-width: auto;
     }
   
@@ -156,6 +237,16 @@
   
     .stat-value {
       font-size: 22px;
+    }
+  
+    .level-input {
+      width: 70px;
+      font-size: 16px;
+    }
+  
+    .edit-btn, .set-btn, .cancel-btn {
+      padding: 6px 12px;
+      font-size: 12px;
     }
   
     .graph-container {
