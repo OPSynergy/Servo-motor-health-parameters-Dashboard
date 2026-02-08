@@ -1,21 +1,24 @@
 import { useMotor } from '../context/MotorContext'
-import servoMotor from '../assets/servo_motor.png'
 import './LiveStatusIndicator.css'
 
 const LiveStatusIndicator = () => {
   const { selectedMotor } = useMotor()
-  const motorImage = selectedMotor?.imageUrl || servoMotor
+  const isConnected = !!selectedMotor
 
   return (
     <div className="live-status-indicator">
-      <img 
-        src={motorImage} 
-        alt={selectedMotor?.name || "Motor"} 
-        className="status-motor-image"
-      />
+      {isConnected && selectedMotor?.imageUrl && (
+        <img 
+          src={selectedMotor.imageUrl} 
+          alt={selectedMotor.name} 
+          className="status-motor-image"
+        />
+      )}
       <div className="status-indicator-content">
-        <div className="status-light"></div>
-        <span className="status-text">Live</span>
+        <div className={`status-light ${isConnected ? 'connected' : 'disconnected'}`}></div>
+        <span className={`status-text ${isConnected ? 'connected-text' : 'disconnected-text'}`}>
+          {isConnected ? 'Live' : 'Disconnected'}
+        </span>
       </div>
     </div>
   )
