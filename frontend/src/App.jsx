@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import Sidebar from './components/Sidebar'
+import LiveStatusIndicator from './components/LiveStatusIndicator'
 import Home from './pages/Home'
 import MotorHealth from './pages/MotorHealth'
 import Alarms from './pages/Alarms'
@@ -62,6 +63,9 @@ function App() {
         collapsed={sidebarCollapsed}
         setCollapsed={setSidebarCollapsed}
       />
+
+      {/* Live Status Indicator - Top Right */}
+      <LiveStatusIndicator />
 
       {/* Layer 3: Content (z-index: 100) */}
       <main className={`main-content ${sidebarCollapsed ? 'sidebar-collapsed' : ''}`}>

@@ -1,7 +1,11 @@
 import { useState, useEffect } from 'react'
+import { FaPencilAlt, FaTrash, FaPlay } from 'react-icons/fa'
+import { fetchMotors, createMotor, updateMotor, deleteMotor } from '../services/motorApi'
+import { useMotor } from '../context/MotorContext'
 import './MotorSetup.css'
 
 const MotorSetup = () => {
+  const { selectMotor, selectedMotor } = useMotor()
   const [motors, setMotors] = useState([])
   const [formData, setFormData] = useState({
     name: '',
@@ -11,34 +15,9 @@ const MotorSetup = () => {
   const [uploadedImage, setUploadedImage] = useState(null)
   const [imagePreview, setImagePreview] = useState(null)
   const [showAddForm, setShowAddForm] = useState(false)
-
-  // Default motors
-  const defaultMotors = [
-    {
-      id: '1',
-      name: 'NEMA 17 Stepper',
-      type: 'Stepper',
-      voltage: '12V',
-      imageUrl: 'https://placehold.co/300x200/4F46E5/FFFFFF?text=NEMA+17+Stepper',
-      isDefault: true
-    },
-    {
-      id: '2',
-      name: 'MG995 Servo',
-      type: 'Servo',
-      voltage: '5V',
-      imageUrl: 'https://placehold.co/300x200/10B981/FFFFFF?text=MG995+Servo',
-      isDefault: true
-    },
-    {
-      id: '3',
-      name: 'DC Gear Motor',
-      type: 'DC',
-      voltage: '12-24V',
-      imageUrl: 'https://placehold.co/300x200/F59E0B/FFFFFF?text=DC+Gear+Motor',
-      isDefault: true
-    }
-  ]
+  const [editingMotor, setEditingMotor] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
 
   // Process image to remove transparency and add white background using Canvas API
   // This function handles RGBA, PNG with transparency, and converts to RGB with white background
@@ -97,61 +76,25 @@ const MotorSetup = () => {
     })
   }
 
-  // Process existing motor images to add white background
-  // This processes images already stored in localStorage
-  const processExistingMotors = async (motors) => {
-    return Promise.all(
-      motors.map(async (motor) => {
-        // Skip if it's an external URL (placeholder or external image)
-        if (motor.imageUrl.startsWith('http://') || motor.imageUrl.startsWith('https://')) {
-          return motor
-        }
-        
-        // Process data URLs (uploaded images) to ensure they have white backgrounds
-        if (motor.imageUrl.startsWith('data:image')) {
-          try {
-            const processedUrl = await processImageWithWhiteBackground(motor.imageUrl)
-            return { ...motor, imageUrl: processedUrl }
-          } catch (error) {
-            console.error('Error processing existing motor image:', error)
-            return motor // Return original if processing fails
-          }
-        }
-        
-        return motor
-      })
-    )
-  }
-
-  // Load motors from localStorage on mount
+  // Load motors from database on mount
   useEffect(() => {
-    try {
-      const savedMotors = localStorage.getItem('motors')
-      if (savedMotors) {
-        const parsedMotors = JSON.parse(savedMotors)
-        // Process existing images to add white background
-        processExistingMotors(parsedMotors).then((processedMotors) => {
-          setMotors(processedMotors)
-          // Update localStorage with processed images
-          localStorage.setItem('motors', JSON.stringify(processedMotors))
-        })
-      } else {
-        setMotors(defaultMotors)
+    const loadMotors = async () => {
+      try {
+        setLoading(true)
+        setError(null)
+        const motorsData = await fetchMotors()
+        setMotors(motorsData)
+      } catch (error) {
+        console.error('Error loading motors from database:', error)
+        setError('Failed to load motors. Make sure the server is running.')
+        setMotors([])
+      } finally {
+        setLoading(false)
       }
-    } catch (error) {
-      console.error('Error loading motors from localStorage:', error)
-      setMotors(defaultMotors)
     }
+    
+    loadMotors()
   }, [])
-
-  // Save motors to localStorage whenever state changes
-  useEffect(() => {
-    try {
-      localStorage.setItem('motors', JSON.stringify(motors))
-    } catch (error) {
-      console.error('Error saving motors to localStorage:', error)
-    }
-  }, [motors])
 
   // Handle form input changes
   const handleInputChange = (e) => {
@@ -232,8 +175,8 @@ const MotorSetup = () => {
     }
   }
 
-  // Handle add motor
-  const handleAddMotor = (e) => {
+  // Handle add/edit motor
+  const handleAddMotor = async (e) => {
     e.preventDefault()
     
     if (!formData.name || !formData.voltage) {
@@ -241,34 +184,66 @@ const MotorSetup = () => {
       return
     }
 
-    // Use uploaded image (data URL - already processed with white background) if available, otherwise use placeholder
-    let imageUrl = imagePreview || `https://placehold.co/300x200/6B7280/FFFFFF?text=${encodeURIComponent(formData.name)}`
-
-    const newMotor = {
-      id: Date.now().toString(),
-      name: formData.name,
-      type: formData.type,
-      voltage: formData.voltage,
-      imageUrl: imageUrl,
-      isDefault: false
+    // Use uploaded image (data URL - already processed with white background) if available
+    // For editing: keep original image if no new image was uploaded
+    let imageUrl
+    if (editingMotor) {
+      // If editing and a new image was uploaded (imagePreview changed from original), use it
+      // Otherwise, keep the original image
+      imageUrl = (uploadedImage && imagePreview !== editingMotor.imageUrl) 
+        ? imagePreview 
+        : editingMotor.imageUrl
+    } else {
+      // For new motor, use preview or placeholder
+      imageUrl = imagePreview || `https://placehold.co/300x200/6B7280/FFFFFF?text=${encodeURIComponent(formData.name)}`
     }
 
-    setMotors(prev => [...prev, newMotor])
-    
-    // Reset form
-    setFormData({
-      name: '',
-      type: 'Servo',
-      voltage: ''
-    })
-    setUploadedImage(null)
-    setImagePreview(null)
-    setShowAddForm(false)
-    
-    // Reset file input
-    const fileInput = document.getElementById('imageFile')
-    if (fileInput) {
-      fileInput.value = ''
+    try {
+      if (editingMotor) {
+        // Update existing motor in database
+        const updatedMotor = await updateMotor(editingMotor.id, {
+          name: formData.name,
+          type: formData.type,
+          voltage: formData.voltage,
+          imageUrl: imageUrl
+        })
+        
+        // Update local state
+        setMotors(prev => prev.map(motor => 
+          motor.id === editingMotor.id ? updatedMotor : motor
+        ))
+      } else {
+        // Create new motor in database
+        const newMotor = await createMotor({
+          name: formData.name,
+          type: formData.type,
+          voltage: formData.voltage,
+          imageUrl: imageUrl
+        })
+        
+        // Add to local state
+        setMotors(prev => [...prev, newMotor])
+      }
+      
+      // Reset form
+      setFormData({
+        name: '',
+        type: 'Servo',
+        voltage: ''
+      })
+      setUploadedImage(null)
+      setImagePreview(null)
+      setShowAddForm(false)
+      setEditingMotor(null)
+      
+      // Reset file input
+      const fileInput = document.getElementById('imageFile')
+      if (fileInput) {
+        fileInput.value = ''
+      }
+    } catch (error) {
+      console.error('Error saving motor:', error)
+      alert('Failed to save motor. Please try again.')
     }
   }
 
@@ -282,6 +257,7 @@ const MotorSetup = () => {
     })
     setUploadedImage(null)
     setImagePreview(null)
+    setEditingMotor(null)
     
     // Reset file input
     const fileInput = document.getElementById('imageFile')
@@ -291,9 +267,20 @@ const MotorSetup = () => {
   }
 
   // Handle delete motor
-  const handleDeleteMotor = (id) => {
+  const handleDeleteMotor = async (id) => {
     if (window.confirm('Are you sure you want to delete this motor?')) {
-      setMotors(prev => prev.filter(motor => motor.id !== id))
+      try {
+        await deleteMotor(id)
+        // Remove from local state
+        setMotors(prev => prev.filter(motor => motor.id !== id))
+        // Clear selection if the deleted motor was selected
+        if (selectedMotor?.id === id) {
+          selectMotor(null)
+        }
+      } catch (error) {
+        console.error('Error deleting motor:', error)
+        alert(error.message || 'Failed to delete motor. Please try again.')
+      }
     }
   }
 
@@ -302,9 +289,17 @@ const MotorSetup = () => {
     alert(`Configuring ${motor.name}...\n\nThis feature will open the motor configuration panel.`)
   }
 
-  // Handle edit motor
+  // Handle edit motor - opens edit form with motor data pre-filled
   const handleEditMotor = (motor) => {
-    alert(`Editing ${motor.name}...\n\nThis feature will open the motor edit panel.`)
+    setEditingMotor(motor)
+    setFormData({
+      name: motor.name,
+      type: motor.type,
+      voltage: motor.voltage
+    })
+    setImagePreview(motor.imageUrl)
+    setUploadedImage(null)
+    setShowAddForm(true)
   }
 
   // Handle image error - fallback to placeholder
@@ -317,12 +312,37 @@ const MotorSetup = () => {
       <div className="motor-setup-content">
         <h1 className="motor-setup-title">Motor Setup</h1>
         
+        {error && (
+          <div style={{ 
+            padding: '12px', 
+            backgroundColor: '#fee2e2', 
+            color: '#dc2626', 
+            borderRadius: '8px', 
+            marginBottom: '20px' 
+          }}>
+            {error}
+          </div>
+        )}
+        
+        {loading && (
+          <div style={{ 
+            padding: '12px', 
+            textAlign: 'center', 
+            marginBottom: '20px' 
+          }}>
+            Loading motors...
+          </div>
+        )}
+        
         {/* Add Motor Button */}
         {!showAddForm && (
           <div className="add-motor-button-container">
             <button 
               className="add-motor-button"
-              onClick={() => setShowAddForm(true)}
+              onClick={() => {
+                setEditingMotor(null)
+                setShowAddForm(true)
+              }}
               aria-label="Add Motor"
             >
               <span className="add-button-icon">+</span>
@@ -331,11 +351,11 @@ const MotorSetup = () => {
           </div>
         )}
 
-        {/* Add Motor Form */}
+        {/* Add/Edit Motor Form */}
         {showAddForm && (
           <div className="add-motor-section">
             <div className="form-header">
-              <h2 className="section-title">Add New Motor</h2>
+              <h2 className="section-title">{editingMotor ? 'Edit Motor' : 'Add New Motor'}</h2>
               <button 
                 type="button"
                 className="close-form-btn"
@@ -421,7 +441,7 @@ const MotorSetup = () => {
                   Cancel
                 </button>
                 <button type="submit" className="add-motor-btn">
-                  Add Motor
+                  {editingMotor ? 'Update Motor' : 'Add Motor'}
                 </button>
               </div>
             </form>
@@ -432,14 +452,21 @@ const MotorSetup = () => {
         <div className="motors-section">
           <div className="motors-grid">
             {motors.map((motor) => (
-              <div key={motor.id} className="motor-image-wrapper">
+              <div key={motor.id} className="motor-item">
                 <div className="motor-hover-buttons">
+                  <button
+                    onClick={() => selectMotor(motor)}
+                    className={`monitor-btn ${selectedMotor?.id === motor.id ? 'active' : ''}`}
+                    title="Select Motor for Monitoring"
+                  >
+                    <FaPlay />
+                  </button>
                   <button
                     onClick={() => handleEditMotor(motor)}
                     className="edit-btn"
                     title="Edit Motor"
                   >
-                    Edit
+                    <FaPencilAlt />
                   </button>
                   {!motor.isDefault && (
                     <button
@@ -447,19 +474,22 @@ const MotorSetup = () => {
                       className="delete-btn"
                       title="Delete Motor"
                     >
-                      Delete
+                      <FaTrash />
                     </button>
                   )}
                 </div>
-                <div style={{ background: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', minHeight: '200px' }}>
-                  <img
-                    src={motor.imageUrl}
-                    alt={motor.name}
-                    className="motor-image"
-                    onError={(e) => handleImageError(e, motor.name)}
-                    style={{ backgroundColor: 'white', display: 'block', maxWidth: '100%', maxHeight: '400px', objectFit: 'contain' }}
-                  />
+                <div className="motor-image-wrapper">
+                  <div style={{ background: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', minHeight: '200px' }}>
+                    <img
+                      src={motor.imageUrl}
+                      alt={motor.name}
+                      className="motor-image"
+                      onError={(e) => handleImageError(e, motor.name)}
+                      style={{ backgroundColor: 'white', display: 'block', maxWidth: '100%', maxHeight: '400px', objectFit: 'contain' }}
+                    />
+                  </div>
                 </div>
+                <div className="motor-name-label">{motor.name}</div>
               </div>
             ))}
           </div>
