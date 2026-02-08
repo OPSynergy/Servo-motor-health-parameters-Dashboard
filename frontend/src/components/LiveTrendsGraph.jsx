@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Line } from 'react-chartjs-2'
+import { FaPencilAlt } from 'react-icons/fa'
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -11,6 +12,7 @@ import {
   Legend,
   Filler
 } from 'chart.js'
+import { saveLiveTrend, getHistoricalTrends, deleteAllTrendsForParameter } from '../services/liveTrendsApi'
 import './LiveTrendsGraph.css'
 
 ChartJS.register(
@@ -77,6 +79,13 @@ const LiveTrendsGraph = ({ type }) => {
   const [tempLL, setTempLL] = useState(levels.LL)
   const [isEditingHL, setIsEditingHL] = useState(false)
   const [isEditingLL, setIsEditingLL] = useState(false)
+  const [showTimeOptions, setShowTimeOptions] = useState(false)
+  const [selectedTimeOption, setSelectedTimeOption] = useState(null)
+  const [historicalData, setHistoricalData] = useState([])
+  const [loadingHistorical, setLoadingHistorical] = useState(false)
+  const [graphData, setGraphData] = useState([])
+  const [graphLabels, setGraphLabels] = useState([])
+  const [lastClearTime, setLastClearTime] = useState(null)
 
   // Update levels when type changes
   useEffect(() => {
@@ -104,6 +113,13 @@ const LiveTrendsGraph = ({ type }) => {
     setTempLL(newLevels.LL)
     setIsEditingHL(false)
     setIsEditingLL(false)
+    
+    // Clear historical data when parameter type changes
+    setSelectedTimeOption(null)
+    setHistoricalData([])
+    setLoadingHistorical(false)
+    setGraphData([])
+    setGraphLabels([])
   }, [type]) // Remove currentConfig from dependencies to avoid circular updates
 
   // Save levels to localStorage whenever they change
@@ -114,8 +130,13 @@ const LiveTrendsGraph = ({ type }) => {
   const mid = (levels.HL + levels.LL) / 2
   const amplitude = (levels.HL - levels.LL) / 3
 
-  // Generate sample data
+  // Generate sample data (only when no time option is selected)
   useEffect(() => {
+    if (selectedTimeOption) {
+      // Don't generate live data when viewing historical data
+      return
+    }
+    
     const generateData = () => {
       const points = 50
       const newData = []
@@ -126,43 +147,148 @@ const LiveTrendsGraph = ({ type }) => {
         newData.push(mid + trend + noise)
       }
       setData(newData)
+      // Immediately update graph data for live mode
+      if (!selectedTimeOption) {
+        setGraphData(newData)
+        setGraphLabels(Array.from({ length: newData.length }, (_, i) => i))
+      }
     }
 
+    // Generate initial data immediately
     generateData()
     const interval = setInterval(generateData, 3000)
     return () => clearInterval(interval)
-  }, [mid, amplitude]) // Use mid and amplitude instead of levels
+  }, [mid, amplitude, selectedTimeOption]) // Use mid and amplitude instead of levels
 
-  const handleSetHL = () => {
+  // Save current value to database periodically (only when not viewing historical data)
+  useEffect(() => {
+    if (selectedTimeOption || data.length === 0) return
+    
+    const currentValue = data[data.length - 1]
+    
+    const saveData = async () => {
+      try {
+        await saveLiveTrend(type, levels.HL, levels.LL, currentValue)
+      } catch (error) {
+        // Silently fail - don't interrupt the UI
+        console.error('Failed to save live trend data:', error)
+      }
+    }
+    
+    // Save immediately and then every 3 seconds
+    saveData()
+    const saveInterval = setInterval(saveData, 3000)
+    
+    return () => clearInterval(saveInterval)
+  }, [data, levels, type, selectedTimeOption])
+
+  // Update graph data based on selected time option or live data
+  useEffect(() => {
+    if (selectedTimeOption) {
+      // When time option is selected, use historical data
+      if (historicalData.length > 0) {
+        // Sort by timestamp to ensure chronological order
+        const sortedData = [...historicalData].sort((a, b) => {
+          return new Date(a.timestamp) - new Date(b.timestamp)
+        })
+        const sortedValues = sortedData.map(item => {
+          const value = parseFloat(item.current_value)
+          return isNaN(value) ? 0 : value
+        }).filter(val => val !== null && val !== undefined && !isNaN(val))
+        
+        // Create labels from timestamps
+        const labels = sortedData.map(item => {
+          const date = new Date(item.timestamp)
+          // Format as HH:MM:SS for better readability
+          const hours = String(date.getHours()).padStart(2, '0')
+          const minutes = String(date.getMinutes()).padStart(2, '0')
+          const seconds = String(date.getSeconds()).padStart(2, '0')
+          return `${hours}:${minutes}:${seconds}`
+        })
+        
+        // Ensure labels and values have the same length
+        const minLength = Math.min(sortedValues.length, labels.length)
+        setGraphData(sortedValues.slice(0, minLength))
+        setGraphLabels(labels.slice(0, minLength))
+      } else if (!loadingHistorical) {
+        // Only clear if loading is complete and no data
+        setGraphData([])
+        setGraphLabels([])
+      }
+    } else {
+      // When no time option is selected, use live data
+      if (data.length > 0) {
+        setGraphData(data)
+        setGraphLabels(Array.from({ length: data.length }, (_, i) => i))
+      }
+    }
+  }, [selectedTimeOption, historicalData, data, loadingHistorical])
+
+  const handleSetHL = async () => {
     const value = parseFloat(tempHL)
     if (!isNaN(value) && value > levels.LL) {
       setLevels({ HL: value, LL: levels.LL })
       setIsEditingHL(false)
+      
+      // Save to database when HL changes
+      if (data.length > 0) {
+        const currentValue = data[data.length - 1]
+        try {
+          await saveLiveTrend(type, value, levels.LL, currentValue)
+        } catch (error) {
+          console.error('Failed to save HL change:', error)
+        }
+      }
     } else {
       alert('High Level must be greater than Low Level')
       setTempHL(levels.HL)
     }
   }
 
-  const handleSetLL = () => {
+  const handleSetLL = async () => {
     const value = parseFloat(tempLL)
     if (!isNaN(value) && value < levels.HL) {
       setLevels({ HL: levels.HL, LL: value })
       setIsEditingLL(false)
+      
+      // Save to database when LL changes
+      if (data.length > 0) {
+        const currentValue = data[data.length - 1]
+        try {
+          await saveLiveTrend(type, levels.HL, value, currentValue)
+        } catch (error) {
+          console.error('Failed to save LL change:', error)
+        }
+      }
     } else {
       alert('Low Level must be less than High Level')
       setTempLL(levels.LL)
     }
   }
 
-  const labels = Array.from({ length: data.length }, (_, i) => i)
+  // Ensure graphData and graphLabels are always arrays with matching lengths
+  const safeGraphData = Array.isArray(graphData) ? graphData.filter(val => val !== null && val !== undefined && !isNaN(val)) : []
+  const safeGraphLabels = Array.isArray(graphLabels) && graphLabels.length === safeGraphData.length 
+    ? graphLabels 
+    : safeGraphData.length > 0
+      ? Array.from({ length: safeGraphData.length }, (_, i) => i.toString())
+      : []
+
+  // Ensure labels and data have matching lengths
+  const finalLabels = safeGraphLabels.length === safeGraphData.length 
+    ? safeGraphLabels 
+    : safeGraphData.length > 0
+      ? Array.from({ length: safeGraphData.length }, (_, i) => i.toString())
+      : []
+  
+  const finalData = safeGraphData.map(val => typeof val === 'number' ? val : parseFloat(val) || 0)
 
   const chartData = {
-    labels,
+    labels: finalLabels,
     datasets: [
       {
         label: currentConfig.title,
-        data: data,
+        data: finalData,
         borderColor: currentConfig.color,
         backgroundColor: `${currentConfig.color}20`,
         borderWidth: 3,
@@ -173,26 +299,29 @@ const LiveTrendsGraph = ({ type }) => {
         pointHoverBackgroundColor: currentConfig.color,
         pointHoverBorderColor: '#ffffff',
         pointHoverBorderWidth: 2,
+        spanGaps: false,
       },
       {
         label: 'High Level (HL)',
-        data: Array(data.length).fill(levels.HL),
+        data: Array(finalData.length).fill(levels.HL),
         borderColor: '#dc2626',
         backgroundColor: 'transparent',
         borderWidth: 2,
         borderDash: [10, 5],
         pointRadius: 0,
         fill: false,
+        spanGaps: false,
       },
       {
         label: 'Low Level (LL)',
-        data: Array(data.length).fill(levels.LL),
+        data: Array(finalData.length).fill(levels.LL),
         borderColor: '#ea580c',
         backgroundColor: 'transparent',
         borderWidth: 2,
         borderDash: [10, 5],
         pointRadius: 0,
         fill: false,
+        spanGaps: false,
       }
     ]
   }
@@ -235,6 +364,7 @@ const LiveTrendsGraph = ({ type }) => {
     },
     scales: {
       x: {
+        type: 'category',
         display: true,
         grid: {
           display: false
@@ -247,7 +377,7 @@ const LiveTrendsGraph = ({ type }) => {
         },
         title: {
           display: true,
-          text: 'Time (samples)',
+          text: selectedTimeOption ? 'Time' : 'Time (samples)',
           font: {
             size: 13,
             weight: 'bold'
@@ -303,6 +433,15 @@ const LiveTrendsGraph = ({ type }) => {
           </div>
 
           <div className="stat-card stat-card-editable">
+            {!isEditingHL && (
+              <button 
+                className="edit-btn-hover" 
+                onClick={() => setIsEditingHL(true)}
+                title="Edit High Level"
+              >
+                <FaPencilAlt />
+              </button>
+            )}
             <span className="stat-label">High Level (HL)</span>
             <div className="stat-value-container">
               {isEditingHL ? (
@@ -329,20 +468,21 @@ const LiveTrendsGraph = ({ type }) => {
                   </button>
                 </>
               ) : (
-                <>
-                  <span className="stat-value critical">{levels.HL}</span>
-                  <button 
-                    className="edit-btn" 
-                    onClick={() => setIsEditingHL(true)}
-                  >
-                    Edit
-                  </button>
-                </>
+                <span className="stat-value critical">{levels.HL}</span>
               )}
             </div>
           </div>
 
           <div className="stat-card stat-card-editable">
+            {!isEditingLL && (
+              <button 
+                className="edit-btn-hover" 
+                onClick={() => setIsEditingLL(true)}
+                title="Edit Low Level"
+              >
+                <FaPencilAlt />
+              </button>
+            )}
             <span className="stat-label">Low Level (LL)</span>
             <div className="stat-value-container">
               {isEditingLL ? (
@@ -369,24 +509,156 @@ const LiveTrendsGraph = ({ type }) => {
                   </button>
                 </>
               ) : (
-                <>
-                  <span className="stat-value warning">{levels.LL}</span>
-                  <button 
-                    className="edit-btn" 
-                    onClick={() => setIsEditingLL(true)}
-                  >
-                    Edit
-                  </button>
-                </>
+                <span className="stat-value warning">{levels.LL}</span>
               )}
+            </div>
+          </div>
+
+          <div className="time-scaling-wrapper">
+            <div 
+              className="stat-card time-scaling-card"
+              onClick={() => setShowTimeOptions(!showTimeOptions)}
+              style={{ cursor: 'pointer' }}
+            >
+              <h3 className="time-scaling-title">
+                <span>Time</span>
+                <span>Scaling</span>
+              </h3>
+            </div>
+            <div className={`time-options-container ${showTimeOptions ? 'show' : 'hide'}`}>
+              {['15 Mins.', '30 Mins.', '1 Hr.', '4 Hr.', '8 Hr.'].map((option, index) => {
+                const minutesMap = {
+                  '15 Mins.': 15,
+                  '30 Mins.': 30,
+                  '1 Hr.': 60,
+                  '4 Hr.': 240,
+                  '8 Hr.': 480
+                }
+                return (
+                  <div
+                    key={option}
+                    className={`time-option-card ${showTimeOptions ? 'roll-in' : 'roll-out'}`}
+                    style={{ animationDelay: `${index * 0.08}s` }}
+                    onClick={async () => {
+                      setSelectedTimeOption(option)
+                      setShowTimeOptions(false)
+                      setLoadingHistorical(true)
+                      try {
+                        // Get the last clear time for this parameter from localStorage
+                        const clearTimeKey = `lastClearTime-${type}`
+                        const lastClear = localStorage.getItem(clearTimeKey)
+                        const afterTimestamp = lastClear || null
+                        
+                        const data = await getHistoricalTrends(type, minutesMap[option], afterTimestamp)
+                        setHistoricalData(data)
+                      } catch (error) {
+                        console.error('Error fetching historical data:', error)
+                        setHistoricalData([])
+                      } finally {
+                        setLoadingHistorical(false)
+                      }
+                    }}
+                  >
+                    {option}
+                  </div>
+                )
+              })}
             </div>
           </div>
         </div>
       </div>
       
       <div className="graph-container">
-        <Line data={chartData} options={options} />
+        {finalData.length > 0 && finalLabels.length === finalData.length ? (
+          <Line 
+            key={`${type}-${selectedTimeOption || 'live'}-${finalData.length}`}
+            data={chartData} 
+            options={options} 
+            redraw={true}
+          />
+        ) : (
+          <div style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'center', 
+            height: '100%',
+            color: '#666',
+            fontSize: '16px'
+          }}>
+            {selectedTimeOption && loadingHistorical 
+              ? 'Loading historical data...' 
+              : selectedTimeOption 
+                ? 'No data available for the selected time period' 
+                : 'Generating live data...'}
+          </div>
+        )}
       </div>
+
+      {selectedTimeOption && (
+        <div className="historical-data-section">
+          <div className="historical-data-header">
+            <h3 className="historical-data-title">
+              {selectedTimeOption} Ago Data Records.
+            </h3>
+            <button
+              className="clear-data-btn"
+              onClick={async () => {
+                if (window.confirm(`Are you sure you want to delete all data records for ${currentConfig.title}? This action cannot be undone.`)) {
+                  try {
+                    await deleteAllTrendsForParameter(type)
+                    // Store the current timestamp as the last clear time
+                    const clearTimeKey = `lastClearTime-${type}`
+                    localStorage.setItem(clearTimeKey, new Date().toISOString())
+                    setHistoricalData([])
+                    setSelectedTimeOption(null)
+                    setGraphData([])
+                    setGraphLabels([])
+                    alert('All data records deleted successfully')
+                  } catch (error) {
+                    console.error('Error deleting data:', error)
+                    alert('Failed to delete data records. Please try again.')
+                  }
+                }
+              }}
+              title="Clear all data for this parameter"
+            >
+              Clear Data
+            </button>
+          </div>
+          {loadingHistorical ? (
+            <div className="historical-data-loading">Loading...</div>
+          ) : historicalData.length > 0 ? (
+            <div className="historical-data-table-container">
+              <table className="historical-data-table">
+                <thead>
+                  <tr>
+                    <th>Parameter</th>
+                    <th>High Level</th>
+                    <th>Low Level</th>
+                    <th>Current Value</th>
+                    <th>Timestamp</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {historicalData.map((row, index) => (
+                    <tr key={index}>
+                      <td>{row.parameter}</td>
+                      <td>{row.highLevel.toFixed(2)}</td>
+                      <td>{row.lowLevel.toFixed(2)}</td>
+                      <td>{row.currentValue.toFixed(2)}</td>
+                      <td>{new Date(row.timestamp).toLocaleString()}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <div className="historical-data-empty">
+              Data not found in the database
+            </div>
+          )}
+        </div>
+      )}
     </div>
   )
 }

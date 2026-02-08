@@ -35,6 +35,23 @@ function initializeDatabase() {
     )
   `)
   
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS live_trends (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      parameter TEXT NOT NULL,
+      high_level REAL NOT NULL,
+      low_level REAL NOT NULL,
+      current_value REAL NOT NULL,
+      timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `)
+  
+  // Create index on parameter and timestamp for faster queries
+  db.exec(`
+    CREATE INDEX IF NOT EXISTS idx_live_trends_parameter_timestamp 
+    ON live_trends(parameter, timestamp DESC)
+  `)
+  
   // Default motors insertion removed - start with empty database
   
   console.log('Database initialized successfully')
@@ -183,6 +200,239 @@ app.delete('/api/motors/:id', (req, res) => {
   } catch (error) {
     console.error('Error deleting motor:', error)
     res.status(500).json({ error: 'Failed to delete motor' })
+  }
+})
+
+// Live Trends API Routes
+
+// Save live trend data
+app.post('/api/live-trends', (req, res) => {
+  try {
+    const { parameter, highLevel, lowLevel, currentValue } = req.body
+    
+    if (!parameter || highLevel === undefined || lowLevel === undefined || currentValue === undefined) {
+      return res.status(400).json({ error: 'Missing required fields: parameter, highLevel, lowLevel, currentValue' })
+    }
+    
+    // Validate parameter
+    const validParameters = ['vibration', 'temperature', 'current-consumption', 'belt-tension']
+    if (!validParameters.includes(parameter)) {
+      return res.status(400).json({ error: `Invalid parameter. Must be one of: ${validParameters.join(', ')}` })
+    }
+    
+    // Get current system time in local timezone
+    const now = new Date()
+    // Format as SQLite datetime: YYYY-MM-DD HH:MM:SS in local timezone
+    const year = now.getFullYear()
+    const month = String(now.getMonth() + 1).padStart(2, '0')
+    const day = String(now.getDate()).padStart(2, '0')
+    const hours = String(now.getHours()).padStart(2, '0')
+    const minutes = String(now.getMinutes()).padStart(2, '0')
+    const seconds = String(now.getSeconds()).padStart(2, '0')
+    const localTimestamp = `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`
+    
+    const insert = db.prepare(`
+      INSERT INTO live_trends (parameter, high_level, low_level, current_value, timestamp)
+      VALUES (?, ?, ?, ?, ?)
+    `)
+    
+    const result = insert.run(parameter, highLevel, lowLevel, currentValue, localTimestamp)
+    
+    res.status(201).json({
+      id: result.lastInsertRowid,
+      parameter,
+      highLevel,
+      lowLevel,
+      currentValue,
+      timestamp: now.toISOString()
+    })
+  } catch (error) {
+    console.error('Error saving live trend:', error)
+    res.status(500).json({ error: 'Failed to save live trend data' })
+  }
+})
+
+// Get live trend data (latest or history)
+app.get('/api/live-trends', (req, res) => {
+  try {
+    const { parameter, limit = 100 } = req.query
+    
+    let query = 'SELECT * FROM live_trends'
+    let params = []
+    
+    if (parameter) {
+      query += ' WHERE parameter = ?'
+      params.push(parameter)
+    }
+    
+    query += ' ORDER BY timestamp DESC LIMIT ?'
+    params.push(parseInt(limit))
+    
+    const trends = db.prepare(query).all(...params)
+    
+    res.json(trends.map(trend => {
+      // Convert SQLite timestamp to ISO string for consistent handling
+      const timestamp = trend.timestamp ? new Date(trend.timestamp).toISOString() : new Date().toISOString()
+      return {
+        id: trend.id,
+        parameter: trend.parameter,
+        highLevel: trend.high_level,
+        lowLevel: trend.low_level,
+        currentValue: trend.current_value,
+        timestamp: timestamp
+      }
+    }))
+  } catch (error) {
+    console.error('Error fetching live trends:', error)
+    res.status(500).json({ error: 'Failed to fetch live trend data' })
+  }
+})
+
+// Get latest values for all parameters
+app.get('/api/live-trends/latest', (req, res) => {
+  try {
+    const latest = db.prepare(`
+      SELECT parameter, high_level, low_level, current_value, timestamp
+      FROM live_trends
+      WHERE id IN (
+        SELECT MAX(id) 
+        FROM live_trends 
+        GROUP BY parameter
+      )
+      ORDER BY parameter
+    `).all()
+    
+    res.json(latest.map(trend => {
+      // Convert SQLite timestamp to ISO string for consistent handling
+      const timestamp = trend.timestamp ? new Date(trend.timestamp).toISOString() : new Date().toISOString()
+      return {
+        parameter: trend.parameter,
+        highLevel: trend.high_level,
+        lowLevel: trend.low_level,
+        currentValue: trend.current_value,
+        timestamp: timestamp
+      }
+    }))
+  } catch (error) {
+    console.error('Error fetching latest trends:', error)
+    res.status(500).json({ error: 'Failed to fetch latest trend data' })
+  }
+})
+
+// Get data from a specific time period ago
+app.get('/api/live-trends/historical', (req, res) => {
+  try {
+    const { parameter, minutesAgo, afterTimestamp } = req.query
+    
+    if (!minutesAgo) {
+      return res.status(400).json({ error: 'minutesAgo parameter is required' })
+    }
+    
+    const minutes = parseInt(minutesAgo)
+    if (isNaN(minutes) || minutes < 0) {
+      return res.status(400).json({ error: 'Invalid minutesAgo value' })
+    }
+    
+    // For 8 hours (480 minutes), show all data in the database
+    // For other time periods, show data up to that time
+    let query = `
+      SELECT parameter, high_level, low_level, current_value, timestamp
+      FROM live_trends
+    `
+    let params = []
+    let hasWhere = false
+    
+    // Filter by afterTimestamp if provided (data after last clear)
+    if (afterTimestamp) {
+      // Convert ISO timestamp to local datetime format
+      const afterDate = new Date(afterTimestamp)
+      const year = afterDate.getFullYear()
+      const month = String(afterDate.getMonth() + 1).padStart(2, '0')
+      const day = String(afterDate.getDate()).padStart(2, '0')
+      const hours = String(afterDate.getHours()).padStart(2, '0')
+      const mins = String(afterDate.getMinutes()).padStart(2, '0')
+      const secs = String(afterDate.getSeconds()).padStart(2, '0')
+      const afterTimestampFormatted = `${year}-${month}-${day} ${hours}:${mins}:${secs}`
+      
+      query += ' WHERE timestamp > ?'
+      params.push(afterTimestampFormatted)
+      hasWhere = true
+    }
+    
+    // Only filter by time if not 8 hours (480 minutes)
+    if (minutes !== 480) {
+      // Calculate target time in local timezone
+      const targetTime = new Date(Date.now() - minutes * 60 * 1000)
+      const year = targetTime.getFullYear()
+      const month = String(targetTime.getMonth() + 1).padStart(2, '0')
+      const day = String(targetTime.getDate()).padStart(2, '0')
+      const hours = String(targetTime.getHours()).padStart(2, '0')
+      const mins = String(targetTime.getMinutes()).padStart(2, '0')
+      const secs = String(targetTime.getSeconds()).padStart(2, '0')
+      const targetTimestamp = `${year}-${month}-${day} ${hours}:${mins}:${secs}`
+      
+      query += hasWhere ? ' AND timestamp <= ?' : ' WHERE timestamp <= ?'
+      params.push(targetTimestamp)
+      hasWhere = true
+    }
+    
+    if (parameter) {
+      query += hasWhere ? ' AND parameter = ?' : ' WHERE parameter = ?'
+      params.push(parameter)
+    }
+    
+    // Order by timestamp DESC to get the most recent data first
+    // For 8hrs, show all data, for others limit to 100
+    if (minutes === 480) {
+      query += ' ORDER BY timestamp DESC'
+    } else {
+      query += ' ORDER BY timestamp DESC LIMIT 100'
+    }
+    
+    const data = db.prepare(query).all(...params)
+    
+    res.json(data.map(trend => {
+      // Convert SQLite timestamp to ISO string for consistent handling
+      const timestamp = trend.timestamp ? new Date(trend.timestamp).toISOString() : new Date().toISOString()
+      return {
+        parameter: trend.parameter,
+        highLevel: trend.high_level,
+        lowLevel: trend.low_level,
+        currentValue: trend.current_value,
+        timestamp: timestamp
+      }
+    }))
+  } catch (error) {
+    console.error('Error fetching historical trends:', error)
+    res.status(500).json({ error: 'Failed to fetch historical trend data' })
+  }
+})
+
+// Delete all data for a specific parameter
+app.delete('/api/live-trends', (req, res) => {
+  try {
+    const { parameter } = req.query
+    
+    if (!parameter) {
+      return res.status(400).json({ error: 'parameter is required' })
+    }
+    
+    // Validate parameter
+    const validParameters = ['vibration', 'temperature', 'current-consumption', 'belt-tension']
+    if (!validParameters.includes(parameter)) {
+      return res.status(400).json({ error: `Invalid parameter. Must be one of: ${validParameters.join(', ')}` })
+    }
+    
+    const deleteStmt = db.prepare('DELETE FROM live_trends WHERE parameter = ?')
+    const result = deleteStmt.run(parameter)
+    
+    res.json({ 
+      message: `All data for ${parameter} deleted successfully`,
+      deletedCount: result.changes
+    })
+  } catch (error) {
+    console.error('Error deleting live trends:', error)
+    res.status(500).json({ error: 'Failed to delete live trend data' })
   }
 })
 
