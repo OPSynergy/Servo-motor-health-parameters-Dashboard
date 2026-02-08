@@ -44,6 +44,11 @@ html, body, #root {
   min-height: 100vh;
 }
 
+/* Motor Setup page should have pointer events enabled */
+.main-content .motor-setup-container {
+  pointer-events: auto;
+}
+
 /* Only specific elements should capture clicks */
 .main-content .page-container {
   pointer-events: none;
@@ -71,4 +76,4 @@ html, body, #root {
 
 .main-content::-webkit-scrollbar-thumb:hover {
   background: rgba(156, 163, 175, 0.7);
-}
+} 

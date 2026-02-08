@@ -1,250 +1,512 @@
-* {
-    box-sizing: border-box;
+.motor-setup-container {
+  background-color: white;
+  min-height: 100vh;
+  width: 100%;
+  position: relative;
+  z-index: 100;
+  padding: 40px 20px;
+  box-sizing: border-box;
+  pointer-events: auto !important;
+}
+
+.motor-setup-container * {
+  pointer-events: auto !important;
+}
+
+.motor-setup-content {
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.motor-setup-title {
+  font-size: 36px;
+  font-weight: 700;
+  color: #111827;
+  margin-bottom: 40px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Helvetica Neue", Arial, sans-serif;
+}
+
+/* Add Motor Button */
+.add-motor-button-container {
+  display: flex;
+  justify-content: flex-start;
+  margin-bottom: 40px;
+  margin-top: 20px;
+}
+
+.add-motor-button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 200px;
+  height: 200px;
+  background: transparent;
+  border: 3px dashed #d1d5db;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  color: #6b7280;
+  position: relative;
+  overflow: visible;
+  padding: 0;
+}
+
+.add-motor-button:hover {
+  border-color: #3b82f6;
+  background: rgba(59, 130, 246, 0.05);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
+}
+
+.add-motor-button:active {
+  transform: translateY(0);
+}
+
+.add-button-icon {
+  font-size: 80px;
+  font-weight: 300;
+  line-height: 1;
+  position: relative;
+  z-index: 1;
+  transition: all 0.3s ease;
+  color: #6b7280;
+  margin: 0;
+}
+
+.add-motor-button:hover .add-button-icon {
+  color: #3b82f6;
+  transform: scale(1.1);
+}
+
+.add-button-text {
+  font-size: 18px;
+  font-weight: 600;
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  opacity: 0;
+  transition: opacity 0.3s ease, transform 0.3s ease;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Helvetica Neue", Arial, sans-serif;
+  letter-spacing: 0.5px;
+  color: #3b82f6;
+  white-space: nowrap;
+  z-index: 2;
+}
+
+.add-motor-button:hover .add-button-text {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+.section-title {
+  font-size: 24px;
+  font-weight: 600;
+  color: #111827;
+  margin-bottom: 20px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Helvetica Neue", Arial, sans-serif;
+}
+
+/* Add Motor Form Section */
+.add-motor-section {
+  background: white;
+  border: 2px solid #e5e7eb;
+  border-radius: 16px;
+  padding: 32px;
+  margin-bottom: 40px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05), 0 10px 20px rgba(0, 0, 0, 0.08);
+  animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
   }
-  
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.form-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 2px solid #e5e7eb;
+}
+
+.close-form-btn {
+  width: 36px;
+  height: 36px;
+  border: none;
+  background: #f3f4f6;
+  border-radius: 50%;
+  font-size: 24px;
+  color: #6b7280;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Helvetica Neue", Arial, sans-serif;
+  line-height: 1;
+}
+
+.close-form-btn:hover {
+  background: #e5e7eb;
+  color: #111827;
+  transform: rotate(90deg);
+}
+
+.add-motor-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 20px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.form-group label {
+  font-size: 14px;
+  font-weight: 500;
+  color: #374151;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Helvetica Neue", Arial, sans-serif;
+}
+
+.form-group input,
+.form-group select {
+  padding: 12px 16px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 14px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Helvetica Neue", Arial, sans-serif;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.form-group input:focus,
+.form-group select:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.form-group input:disabled {
+  background-color: #f3f4f6;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.file-input {
+  padding: 8px;
+  cursor: pointer;
+}
+
+.file-input::-webkit-file-upload-button {
+  padding: 8px 16px;
+  background-color: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  margin-right: 12px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Helvetica Neue", Arial, sans-serif;
+  transition: background-color 0.2s ease;
+}
+
+.file-input::-webkit-file-upload-button:hover {
+  background-color: #2563eb;
+}
+
+.image-preview-container {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-start;
+  background-color: white !important;
+  background-image: none !important;
+}
+
+.image-preview {
+  max-width: 200px;
+  max-height: 150px;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  object-fit: contain;
+  background: white !important;
+  background-color: white !important;
+  background-image: none !important;
+  box-sizing: border-box;
+  padding: 0;
+  display: block;
+}
+
+.clear-image-btn {
+  padding: 6px 12px;
+  background-color: #ef4444;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Helvetica Neue", Arial, sans-serif;
+}
+
+.clear-image-btn:hover {
+  background-color: #dc2626;
+}
+
+.form-hint {
+  font-size: 12px;
+  color: #6b7280;
+  margin-top: 4px;
+  font-style: italic;
+}
+
+.form-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  margin-top: 24px;
+  padding-top: 24px;
+  border-top: 1px solid #e5e7eb;
+}
+
+.add-motor-btn {
+  padding: 12px 32px;
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Helvetica Neue", Arial, sans-serif;
+  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3);
+}
+
+.add-motor-btn:hover {
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(59, 130, 246, 0.4);
+}
+
+.add-motor-btn:active {
+  transform: translateY(0);
+}
+
+.cancel-btn {
+  padding: 12px 32px;
+  background-color: #f3f4f6;
+  color: #374151;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Helvetica Neue", Arial, sans-serif;
+}
+
+.cancel-btn:hover {
+  background-color: #e5e7eb;
+  border-color: #d1d5db;
+  transform: translateY(-1px);
+}
+
+.cancel-btn:active {
+  transform: translateY(0);
+}
+
+/* Motors Section */
+.motors-section {
+  margin-top: 40px;
+}
+
+.motors-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  gap: 32px;
+}
+
+/* Motor Image Wrapper */
+.motor-image-wrapper {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: white !important;
+  background-image: none !important;
+  min-height: 200px;
+}
+
+.motor-image-wrapper::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: white;
+  z-index: 0;
+}
+
+.motor-image-wrapper:hover {
+  transform: translateY(-4px);
+}
+
+.motor-image {
+  width: 100%;
+  height: auto;
+  max-height: 400px;
+  object-fit: contain;
+  transition: transform 0.3s ease;
+  display: block;
+  border: none;
+  background: white !important;
+  background-color: white !important;
+  background-image: none !important;
+  mix-blend-mode: normal;
+  position: relative;
+  z-index: 1;
+  box-sizing: border-box;
+  padding: 0;
+}
+
+.motor-image-wrapper:hover .motor-image {
+  transform: scale(1.02);
+}
+
+.motor-hover-buttons {
+  position: absolute;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 8px;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.3s ease;
+  z-index: 10;
+  pointer-events: auto;
+  background-color: transparent;
+}
+
+.motor-image-wrapper:hover .motor-hover-buttons {
+  opacity: 1;
+  visibility: visible;
+}
+
+.edit-btn {
+  padding: 8px 16px;
+  background-color: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Helvetica Neue", Arial, sans-serif;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  white-space: nowrap;
+}
+
+.edit-btn:hover {
+  background-color: #2563eb;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+}
+
+.edit-btn:active {
+  transform: translateY(0);
+}
+
+.delete-btn {
+  padding: 8px 16px;
+  background-color: #ef4444;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Helvetica Neue", Arial, sans-serif;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  white-space: nowrap;
+}
+
+.delete-btn:hover {
+  background-color: #dc2626;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+}
+
+.delete-btn:active {
+  transform: translateY(0);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
   .motor-setup-container {
-    width: 100%;
-    min-height: 100vh;
-    background-color: #f8f9fa;
-    padding: 40px;
-    position: relative;
+    padding: 20px 16px;
   }
-  
-  .page-title {
-    text-align: center;
-    color: #2c3e50;
-    font-size: 2.5rem;
-    margin: 0 0 40px 0;
-    font-weight: 700;
+
+  .motor-setup-title {
+    font-size: 28px;
+    margin-bottom: 30px;
   }
-  
-  .motors-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-    gap: 30px;
-    max-width: 1400px;
-    margin: 0 auto;
-  }
-  
-  /* Motor Card */
-  .motor-card {
-    background: white;
-    border-radius: 16px;
+
+  .add-motor-section {
     padding: 20px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-    transition: transform 0.3s;
   }
-  
-  .motor-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+
+  .motors-grid {
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 24px;
   }
   
   .motor-image {
-    width: 100%;
-    height: 250px;
-    border-radius: 12px;
-    overflow: hidden;
-    background: #e9ecef;
-    margin-bottom: 15px;
+    max-height: 300px;
   }
-  
-  .motor-image img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
+}
+
+@media (max-width: 480px) {
+  .motor-setup-title {
+    font-size: 24px;
   }
-  
-  .motor-name {
-    margin: 0;
-    font-size: 1.2rem;
-    font-weight: 600;
-    color: #2c3e50;
-    text-align: center;
+
+  .section-title {
+    font-size: 20px;
   }
-  
-  /* Add Motor Card */
-  .add-motor-card {
-    background: white;
-    border-radius: 16px;
-    padding: 20px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-  
-  .add-motor-btn {
-    width: 100%;
-    height: 100%;
-    min-height: 300px;
-    border: 4px dashed #cbd5e0;
-    border-radius: 12px;
-    background: #f8f9fa;
-    cursor: pointer;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 15px;
-    transition: all 0.3s;
-    padding: 20px;
-    position: relative;
-    z-index: 1;
-  }
-  
-  .add-motor-btn:hover {
-    border-color: #4CAF50;
-    background: #e8f5e9;
-  }
-  
-  .plus-icon {
-    font-size: 80px;
-    font-weight: 200;
-    color: #95a5a6;
-    line-height: 1;
-  }
-  
-  .add-motor-btn:hover .plus-icon {
-    color: #4CAF50;
-  }
-  
-  .add-text {
-    font-size: 1.3rem;
-    font-weight: 600;
-    color: #95a5a6;
-  }
-  
-  .add-motor-btn:hover .add-text {
-    color: #4CAF50;
-  }
-  
-  /* Form Card */
-  .motor-form-card {
-    background: white;
-    border-radius: 16px;
-    padding: 25px;
-    box-shadow: 0 8px 24px rgba(76, 175, 80, 0.2);
-    border: 3px solid #4CAF50;
-  }
-  
-  .form-title {
-    margin: 0 0 25px 0;
-    color: #2c3e50;
-    font-size: 1.5rem;
-    font-weight: 700;
-    text-align: center;
-  }
-  
-  .form-group {
-    margin-bottom: 20px;
-  }
-  
-  .image-upload-label {
-    display: block;
-    width: 100%;
-    height: 250px;
-    border: 3px dashed #cbd5e0;
-    border-radius: 12px;
-    cursor: pointer;
-    overflow: hidden;
-    background: #f8f9fa;
-    transition: all 0.3s;
-    position: relative;
-  }
-  
-  .image-upload-label:hover {
-    border-color: #4CAF50;
-    background: #e8f5e9;
-  }
-  
-  .preview-img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-  }
-  
-  .upload-placeholder {
-    width: 100%;
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    color: #95a5a6;
-  }
-  
-  .upload-icon {
-    font-size: 60px;
-    margin-bottom: 10px;
-  }
-  
-  .upload-placeholder span {
-    font-size: 1rem;
-    font-weight: 500;
-  }
-  
-  .motor-name-input {
-    width: 100%;
-    padding: 15px;
-    border: 2px solid #e0e0e0;
-    border-radius: 10px;
-    font-size: 1.1rem;
-    transition: border-color 0.3s;
-    font-family: inherit;
-  }
-  
-  .motor-name-input:focus {
-    outline: none;
-    border-color: #4CAF50;
-  }
-  
-  .form-actions {
-    display: flex;
-    gap: 15px;
-    margin-top: 25px;
-  }
-  
-  .btn-cancel,
-  .btn-save {
-    flex: 1;
-    padding: 15px;
-    border: none;
-    border-radius: 10px;
-    font-size: 1.1rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.3s;
-    font-family: inherit;
-  }
-  
-  .btn-cancel {
-    background: #e9ecef;
-    color: #495057;
-  }
-  
-  .btn-cancel:hover {
-    background: #dee2e6;
-  }
-  
-  .btn-save {
-    background: #4CAF50;
-    color: white;
-  }
-  
-  .btn-save:hover {
-    background: #45a049;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(76, 175, 80, 0.4);
-  }
-  
-  @media (max-width: 768px) {
-    .motors-grid {
-      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-      gap: 20px;
-    }
-    
-    .motor-setup-container {
-      padding: 20px;
-    }
-  }
+
+
+}
