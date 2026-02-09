@@ -52,6 +52,7 @@ npm run preview
 ## Project Structure
 
 ```
+frontend/
 src/
 ├── components/
 │   ├── Sidebar.jsx       # Collapsible sidebar component
