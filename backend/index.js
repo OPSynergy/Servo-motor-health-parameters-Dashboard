@@ -256,6 +256,7 @@ app.post('/api/live-trends', (req, res) => {
 app.get('/api/live-trends', (req, res) => {
   try {
     const { parameter, limit = 100 } = req.query
+    const limitNum = parseInt(limit)
     
     let query = 'SELECT * FROM live_trends'
     let params = []
@@ -265,8 +266,13 @@ app.get('/api/live-trends', (req, res) => {
       params.push(parameter)
     }
     
-    query += ' ORDER BY timestamp DESC LIMIT ?'
-    params.push(parseInt(limit))
+    // Only apply LIMIT if limit is greater than 0
+    if (limitNum > 0) {
+      query += ' ORDER BY timestamp DESC LIMIT ?'
+      params.push(limitNum)
+    } else {
+      query += ' ORDER BY timestamp DESC'
+    }
     
     const trends = db.prepare(query).all(...params)
     

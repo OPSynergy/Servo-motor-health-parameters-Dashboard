@@ -11,6 +11,7 @@ import LiveTrendsGraph from './components/LiveTrendsGraph'
 import Hero3D from './Hero3D'
 import './App.css'
 import MotorSetup from './pages/MotorSetup'
+import DataLogs from './pages/DataLogs'
 
 function App() {
   const [activePage, setActivePage] = useState('home')
@@ -30,6 +31,8 @@ function App() {
         return <LiveTrendsGraph type="current-consumption" />
       case 'belt-tension':
         return <LiveTrendsGraph type="belt-tension" />
+      case 'data-logs':
+        return <DataLogs />
       case 'missions':
         return <Alarms />
       case 'actions':
