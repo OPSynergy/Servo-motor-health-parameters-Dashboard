@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { Line } from 'react-chartjs-2'
 import { FaPencilAlt } from 'react-icons/fa'
 import {
@@ -189,27 +189,44 @@ const LiveTrendsGraph = ({ type }) => {
       if (historicalData.length > 0) {
         // Sort by timestamp to ensure chronological order
         const sortedData = [...historicalData].sort((a, b) => {
-          return new Date(a.timestamp) - new Date(b.timestamp)
+          const dateA = new Date(a.timestamp)
+          const dateB = new Date(b.timestamp)
+          return dateA.getTime() - dateB.getTime()
         })
-        const sortedValues = sortedData.map(item => {
-          const value = parseFloat(item.current_value)
-          return isNaN(value) ? 0 : value
-        }).filter(val => val !== null && val !== undefined && !isNaN(val))
         
-        // Create labels from timestamps
-        const labels = sortedData.map(item => {
-          const date = new Date(item.timestamp)
-          // Format as HH:MM:SS for better readability
-          const hours = String(date.getHours()).padStart(2, '0')
-          const minutes = String(date.getMinutes()).padStart(2, '0')
-          const seconds = String(date.getSeconds()).padStart(2, '0')
-          return `${hours}:${minutes}:${seconds}`
+        const sortedValues = []
+        const labels = []
+        
+        sortedData.forEach(item => {
+          // Parse the current value - handle both number and string
+          // Backend returns currentValue (camelCase), not current_value
+          let value = item.currentValue !== undefined ? item.currentValue : item.current_value
+          if (typeof value === 'string') {
+            value = parseFloat(value)
+          }
+          if (typeof value === 'number' && !isNaN(value)) {
+            sortedValues.push(value)
+            
+            // Create label from timestamp
+            const date = new Date(item.timestamp)
+            if (!isNaN(date.getTime())) {
+              const hours = String(date.getHours()).padStart(2, '0')
+              const minutes = String(date.getMinutes()).padStart(2, '0')
+              const seconds = String(date.getSeconds()).padStart(2, '0')
+              labels.push(`${hours}:${minutes}:${seconds}`)
+            }
+          }
         })
         
         // Ensure labels and values have the same length
         const minLength = Math.min(sortedValues.length, labels.length)
-        setGraphData(sortedValues.slice(0, minLength))
-        setGraphLabels(labels.slice(0, minLength))
+        if (minLength > 0) {
+          setGraphData(sortedValues.slice(0, minLength))
+          setGraphLabels(labels.slice(0, minLength))
+        } else {
+          setGraphData([])
+          setGraphLabels([])
+        }
       } else if (!loadingHistorical) {
         // Only clear if loading is complete and no data
         setGraphData([])
@@ -219,7 +236,10 @@ const LiveTrendsGraph = ({ type }) => {
       // When no time option is selected, use live data
       if (data.length > 0) {
         setGraphData(data)
-        setGraphLabels(Array.from({ length: data.length }, (_, i) => i))
+        setGraphLabels(Array.from({ length: data.length }, (_, i) => `Sample ${i + 1}`))
+      } else {
+        setGraphData([])
+        setGraphLabels([])
       }
     }
   }, [selectedTimeOption, historicalData, data, loadingHistorical])
@@ -267,7 +287,11 @@ const LiveTrendsGraph = ({ type }) => {
   }
 
   // Ensure graphData and graphLabels are always arrays with matching lengths
-  const safeGraphData = Array.isArray(graphData) ? graphData.filter(val => val !== null && val !== undefined && !isNaN(val)) : []
+  const safeGraphData = Array.isArray(graphData) ? graphData.filter(val => val !== null && val !== undefined && !isNaN(val)).map(val => {
+    const num = typeof val === 'number' ? val : parseFloat(val)
+    return isNaN(num) ? 0 : num
+  }) : []
+  
   const safeGraphLabels = Array.isArray(graphLabels) && graphLabels.length === safeGraphData.length 
     ? graphLabels 
     : safeGraphData.length > 0
@@ -281,9 +305,85 @@ const LiveTrendsGraph = ({ type }) => {
       ? Array.from({ length: safeGraphData.length }, (_, i) => i.toString())
       : []
   
-  const finalData = safeGraphData.map(val => typeof val === 'number' ? val : parseFloat(val) || 0)
+  const finalData = safeGraphData.map(val => {
+    const num = typeof val === 'number' ? val : parseFloat(val)
+    return isNaN(num) ? 0 : num
+  })
 
-  const chartData = {
+  // Calculate dynamic Y-axis range based on data values
+  const yAxisRange = useMemo(() => {
+    if (finalData.length === 0) {
+      return { min: 0, max: 100 }
+    }
+
+    // Include HL and LL in the range calculation
+    const allValues = [...finalData, levels.HL, levels.LL]
+    const overallMin = Math.min(...allValues)
+    const overallMax = Math.max(...allValues)
+    
+    // Calculate range
+    const range = overallMax - overallMin
+    
+    // If range is 0 (all values are the same), create a range around that value
+    if (range === 0) {
+      const center = overallMin
+      return { min: Math.max(0, center - 10), max: center + 10 }
+    }
+    
+    // Add 15% padding above and below
+    const padding = range * 0.15
+    
+    let min = overallMin - padding
+    let max = overallMax + padding
+    
+    // Ensure min is not negative if all values are positive
+    if (min < 0 && overallMin >= 0) {
+      min = Math.max(0, overallMin - padding)
+    }
+    
+    // Round to nice numbers for better readability
+    const roundToNiceNumber = (value, isMax) => {
+      if (value === 0) return 0
+      
+      const absValue = Math.abs(value)
+      const magnitude = Math.pow(10, Math.floor(Math.log10(absValue)))
+      const normalized = value / magnitude
+      let rounded
+      
+      if (isMax) {
+        rounded = Math.ceil(normalized) * magnitude
+      } else {
+        rounded = Math.floor(normalized) * magnitude
+      }
+      
+      // Handle very small numbers
+      if (magnitude < 0.01) {
+        if (isMax) {
+          rounded = Math.ceil(value * 10) / 10
+        } else {
+          rounded = Math.floor(value * 10) / 10
+        }
+      }
+      
+      return rounded
+    }
+    
+    // Round min down and max up to nice numbers
+    min = roundToNiceNumber(min, false)
+    max = roundToNiceNumber(max, true)
+    
+    // Ensure we have a minimum range (at least 10% of the max value or 10 units, whichever is smaller)
+    const minRange = Math.max(10, overallMax * 0.1)
+    if (max - min < minRange) {
+      const center = (min + max) / 2
+      min = center - minRange / 2
+      max = center + minRange / 2
+    }
+    
+    return { min, max }
+  }, [finalData, levels.HL, levels.LL])
+
+  const chartData = useMemo(() => ({
     labels: finalLabels,
     datasets: [
       {
@@ -294,12 +394,16 @@ const LiveTrendsGraph = ({ type }) => {
         borderWidth: 3,
         fill: true,
         tension: 0.4,
-        pointRadius: 0,
+        pointRadius: 2,
+        pointBackgroundColor: currentConfig.color,
+        pointBorderColor: '#ffffff',
+        pointBorderWidth: 1,
         pointHoverRadius: 6,
         pointHoverBackgroundColor: currentConfig.color,
         pointHoverBorderColor: '#ffffff',
         pointHoverBorderWidth: 2,
         spanGaps: false,
+        showLine: true,
       },
       {
         label: 'High Level (HL)',
@@ -324,9 +428,9 @@ const LiveTrendsGraph = ({ type }) => {
         spanGaps: false,
       }
     ]
-  }
+  }), [finalLabels, finalData, levels.HL, levels.LL, currentConfig])
 
-  const options = {
+  const options = useMemo(() => ({
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
@@ -386,15 +490,17 @@ const LiveTrendsGraph = ({ type }) => {
       },
       y: {
         display: true,
-        min: 0,
-        max: 100,
+        min: yAxisRange.min,
+        max: yAxisRange.max,
         grid: {
           color: 'rgba(0, 0, 0, 0.05)'
         },
         ticks: {
           font: {
             size: 11
-          }
+          },
+          maxTicksLimit: 10, // Limit number of ticks for cleaner display
+          precision: 1
         },
         title: {
           display: true,
@@ -411,7 +517,7 @@ const LiveTrendsGraph = ({ type }) => {
       axis: 'x',
       intersect: false
     }
-  }
+  }), [yAxisRange, selectedTimeOption, currentConfig])
 
   const currentValue = data[data.length - 1] || 0
   const status = currentValue > levels.HL ? 'critical' : 
@@ -569,12 +675,13 @@ const LiveTrendsGraph = ({ type }) => {
       </div>
       
       <div className="graph-container">
-        {finalData.length > 0 && finalLabels.length === finalData.length ? (
+        {finalData.length > 0 ? (
           <Line 
-            key={`${type}-${selectedTimeOption || 'live'}-${finalData.length}`}
+            key={`${type}-${selectedTimeOption || 'live'}-${finalData.length}-${yAxisRange.min.toFixed(2)}-${yAxisRange.max.toFixed(2)}`}
             data={chartData} 
             options={options} 
             redraw={true}
+            updateMode="active"
           />
         ) : (
           <div style={{ 
