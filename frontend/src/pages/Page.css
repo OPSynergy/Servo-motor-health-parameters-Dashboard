@@ -1,6 +1,5 @@
 @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap');
 /* Force visibility for all page content */
-@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap');
 
 .page-container {
   position: relative;
@@ -1478,7 +1477,6 @@ body:has(.sidebar-collapsed) .home-logo-container {
   text-transform: uppercase;
   line-height: 1.2;
 }
-@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap');
 
 .page-container {
   width: 100%;

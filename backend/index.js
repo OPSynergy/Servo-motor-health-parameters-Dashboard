@@ -26,14 +26,34 @@ function initializeDatabase() {
     CREATE TABLE IF NOT EXISTS motor_setup (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       name TEXT NOT NULL,
+      model TEXT,
       type TEXT NOT NULL,
       voltage TEXT NOT NULL,
+      high_level REAL,
+      low_level REAL,
       image_url TEXT NOT NULL,
       is_default INTEGER DEFAULT 0,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )
   `)
+  
+  // Add new columns if they don't exist (migration for existing databases)
+  try {
+    db.exec(`ALTER TABLE motor_setup ADD COLUMN model TEXT`)
+  } catch (e) {
+    // Column already exists, ignore
+  }
+  try {
+    db.exec(`ALTER TABLE motor_setup ADD COLUMN high_level REAL`)
+  } catch (e) {
+    // Column already exists, ignore
+  }
+  try {
+    db.exec(`ALTER TABLE motor_setup ADD COLUMN low_level REAL`)
+  } catch (e) {
+    // Column already exists, ignore
+  }
   
   db.exec(`
     CREATE TABLE IF NOT EXISTS live_trends (
@@ -69,8 +89,11 @@ app.get('/api/motors', (req, res) => {
     res.json(motors.map(motor => ({
       id: motor.id.toString(),
       name: motor.name,
+      model: motor.model || '',
       type: motor.type,
       voltage: motor.voltage,
+      highLevel: motor.high_level || null,
+      lowLevel: motor.low_level || null,
       imageUrl: motor.image_url,
       isDefault: motor.is_default === 1
     })))
@@ -90,8 +113,11 @@ app.get('/api/motors/:id', (req, res) => {
     res.json({
       id: motor.id.toString(),
       name: motor.name,
+      model: motor.model || '',
       type: motor.type,
       voltage: motor.voltage,
+      highLevel: motor.high_level || null,
+      lowLevel: motor.low_level || null,
       imageUrl: motor.image_url,
       isDefault: motor.is_default === 1
     })
@@ -104,18 +130,18 @@ app.get('/api/motors/:id', (req, res) => {
 // Create new motor
 app.post('/api/motors', (req, res) => {
   try {
-    const { name, type, voltage, imageUrl } = req.body
+    const { name, model, type, voltage, highLevel, lowLevel, imageUrl } = req.body
     
     if (!name || !type || !voltage || !imageUrl) {
       return res.status(400).json({ error: 'Missing required fields' })
     }
     
     const insert = db.prepare(`
-      INSERT INTO motor_setup (name, type, voltage, image_url, is_default)
-      VALUES (?, ?, ?, ?, 0)
+      INSERT INTO motor_setup (name, model, type, voltage, high_level, low_level, image_url, is_default)
+      VALUES (?, ?, ?, ?, ?, ?, ?, 0)
     `)
     
-    const result = insert.run(name, type, voltage, imageUrl)
+    const result = insert.run(name, model || null, type, voltage, highLevel || null, lowLevel || null, imageUrl)
     
     // Fetch the created motor
     const motor = db.prepare('SELECT * FROM motor_setup WHERE id = ?').get(result.lastInsertRowid)
@@ -123,8 +149,11 @@ app.post('/api/motors', (req, res) => {
     res.status(201).json({
       id: motor.id.toString(),
       name: motor.name,
+      model: motor.model || '',
       type: motor.type,
       voltage: motor.voltage,
+      highLevel: motor.high_level || null,
+      lowLevel: motor.low_level || null,
       imageUrl: motor.image_url,
       isDefault: motor.is_default === 1
     })
@@ -137,7 +166,7 @@ app.post('/api/motors', (req, res) => {
 // Update motor
 app.put('/api/motors/:id', (req, res) => {
   try {
-    const { name, type, voltage, imageUrl } = req.body
+    const { name, model, type, voltage, highLevel, lowLevel, imageUrl } = req.body
     const motorId = req.params.id
     
     if (!name || !type || !voltage || !imageUrl) {
@@ -146,11 +175,11 @@ app.put('/api/motors/:id', (req, res) => {
     
     const update = db.prepare(`
       UPDATE motor_setup 
-      SET name = ?, type = ?, voltage = ?, image_url = ?, updated_at = CURRENT_TIMESTAMP
+      SET name = ?, model = ?, type = ?, voltage = ?, high_level = ?, low_level = ?, image_url = ?, updated_at = CURRENT_TIMESTAMP
       WHERE id = ?
     `)
     
-    const result = update.run(name, type, voltage, imageUrl, motorId)
+    const result = update.run(name, model || null, type, voltage, highLevel || null, lowLevel || null, imageUrl, motorId)
     
     if (result.changes === 0) {
       return res.status(404).json({ error: 'Motor not found' })
@@ -162,8 +191,11 @@ app.put('/api/motors/:id', (req, res) => {
     res.json({
       id: motor.id.toString(),
       name: motor.name,
+      model: motor.model || '',
       type: motor.type,
       voltage: motor.voltage,
+      highLevel: motor.high_level || null,
+      lowLevel: motor.low_level || null,
       imageUrl: motor.image_url,
       isDefault: motor.is_default === 1
     })

@@ -4,74 +4,87 @@ import { fetchMotors, createMotor, updateMotor, deleteMotor } from '../services/
 import { useMotor } from '../context/MotorContext'
 import './MotorSetup.css'
 
+// Import motor images
+import hkImage from '../assets/hk.jpg'
+import hgImage from '../assets/hg.jpg'
+import hfImage from '../assets/hf.jpg'
+import hfKpImage from '../assets/hf-kp.jpg'
+import lmFImage from '../assets/lm-f.jpg'
+import tmRbImage from '../assets/tm-rb.jpg'
+
 const MotorSetup = () => {
   const { selectMotor, selectedMotor } = useMotor()
   const [motors, setMotors] = useState([])
   const [formData, setFormData] = useState({
     name: '',
-    type: 'Servo',
-    voltage: ''
+    model: '',
+    highLevel: '',
+    lowLevel: ''
   })
-  const [uploadedImage, setUploadedImage] = useState(null)
-  const [imagePreview, setImagePreview] = useState(null)
   const [showAddForm, setShowAddForm] = useState(false)
   const [editingMotor, setEditingMotor] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
 
-  // Process image to remove transparency and add white background using Canvas API
-  // This function handles RGBA, PNG with transparency, and converts to RGB with white background
-  const processImageWithWhiteBackground = (imageSrc, callback) => {
+  // Get motor image based on model
+  const getMotorImage = (model) => {
+    const imageMap = {
+      'HK Series': hkImage,
+      'HG Series': hgImage,
+      'HF Series': hfImage,
+      'HF-KP Series': hfKpImage,
+      'LM-F Series': lmFImage,
+      'TM-RB Series': tmRbImage
+    }
+    return imageMap[model] || hkImage // Default to HK if model not found
+  }
+
+  // Convert image to data URL
+  const convertImageToDataURL = (imageSrc) => {
     return new Promise((resolve, reject) => {
+      // If it's already a data URL, return it
+      if (imageSrc.startsWith('data:')) {
+        resolve(imageSrc)
+        return
+      }
+
       const img = new Image()
-      
-      // Set crossOrigin to handle CORS if needed
-      img.crossOrigin = 'anonymous'
       
       img.onload = () => {
         try {
-          // Create canvas with same dimensions as image
           const canvas = document.createElement('canvas')
           canvas.width = img.width
           canvas.height = img.height
           const ctx = canvas.getContext('2d')
           
-          // Fill entire canvas with white background first
+          // Fill with white background
           ctx.fillStyle = '#FFFFFF'
           ctx.fillRect(0, 0, canvas.width, canvas.height)
           
-          // Draw the image on top of white background
-          // This automatically composites transparent pixels with white
+          // Draw the image
           ctx.drawImage(img, 0, 0)
           
-          // Convert canvas to PNG data URL (PNG preserves quality)
-          // This will have white background instead of transparency
-          const processedImageUrl = canvas.toDataURL('image/png', 1.0)
-          
-          if (callback) {
-            callback(processedImageUrl)
-          }
-          resolve(processedImageUrl)
+          // Convert to data URL
+          const dataURL = canvas.toDataURL('image/png', 1.0)
+          resolve(dataURL)
         } catch (error) {
-          console.error('Error processing image:', error)
-          // If processing fails, return original
-          if (callback) {
-            callback(imageSrc)
-          }
-          reject(error)
+          console.error('Error converting image to data URL:', error)
+          // If conversion fails, try to use the original source
+          resolve(imageSrc)
         }
       }
       
       img.onerror = (error) => {
         console.error('Error loading image:', error)
-        // If image fails to load, return original
-        if (callback) {
-          callback(imageSrc)
-        }
-        reject(error)
+        // If loading fails, try to use the original source
+        resolve(imageSrc)
       }
       
-      // Load the image
+      // Set crossOrigin only for external URLs
+      if (imageSrc.startsWith('http://') || imageSrc.startsWith('https://')) {
+        img.crossOrigin = 'anonymous'
+      }
+      
       img.src = imageSrc
     })
   }
@@ -105,106 +118,29 @@ const MotorSetup = () => {
     }))
   }
 
-  // Handle file upload - automatically processes images to remove transparency
-  const handleFileUpload = async (e) => {
-    const file = e.target.files[0]
-    if (!file) {
-      return
-    }
-    
-    // Validate file type
-    if (!file.type.startsWith('image/')) {
-      alert('Please select an image file')
-      return
-    }
-    
-    // Validate file size (max 5MB)
-    if (file.size > 5 * 1024 * 1024) {
-      alert('Image size should be less than 5MB')
-      return
-    }
-    
-    // Store original file reference
-    setUploadedImage(file)
-    
-    try {
-      // Read file as data URL
-      const reader = new FileReader()
-      
-      reader.onloadend = async () => {
-        try {
-          const originalDataUrl = reader.result
-          
-          // Process image to remove transparency and add white background
-          // This happens automatically after upload, before preview/display
-          const processedUrl = await processImageWithWhiteBackground(originalDataUrl)
-          
-          // Set the processed image as preview (with white background)
-          setImagePreview(processedUrl)
-        } catch (error) {
-          console.error('Error processing image:', error)
-          // Fallback to original if processing fails
-          const reader = new FileReader()
-          reader.onloadend = () => {
-            setImagePreview(reader.result)
-          }
-          reader.readAsDataURL(file)
-        }
-      }
-      
-      reader.onerror = () => {
-        alert('Error reading image file')
-      }
-      
-      // Start reading the file
-      reader.readAsDataURL(file)
-    } catch (error) {
-      console.error('Error handling file upload:', error)
-      alert('Error processing image. Please try again.')
-    }
-  }
-
-  // Clear uploaded image
-  const handleClearImage = () => {
-    setUploadedImage(null)
-    setImagePreview(null)
-    // Reset file input
-    const fileInput = document.getElementById('imageFile')
-    if (fileInput) {
-      fileInput.value = ''
-    }
-  }
-
   // Handle add/edit motor
   const handleAddMotor = async (e) => {
     e.preventDefault()
     
-    if (!formData.name || !formData.voltage) {
-      alert('Please fill in all required fields (Name and Voltage)')
+    if (!formData.name || !formData.model || !formData.highLevel || !formData.lowLevel) {
+      alert('Please fill in all required fields (Motor Model, Motor Name, High Level, and Low Level)')
       return
     }
 
-    // Use uploaded image (data URL - already processed with white background) if available
-    // For editing: keep original image if no new image was uploaded
-    let imageUrl
-    if (editingMotor) {
-      // If editing and a new image was uploaded (imagePreview changed from original), use it
-      // Otherwise, keep the original image
-      imageUrl = (uploadedImage && imagePreview !== editingMotor.imageUrl) 
-        ? imagePreview 
-        : editingMotor.imageUrl
-    } else {
-      // For new motor, use preview or placeholder
-      imageUrl = imagePreview || `https://placehold.co/300x200/6B7280/FFFFFF?text=${encodeURIComponent(formData.name)}`
-    }
-
     try {
+      // Get image based on selected model and convert to data URL
+      const imageSrc = getMotorImage(formData.model)
+      const imageUrl = await convertImageToDataURL(imageSrc)
+
       if (editingMotor) {
         // Update existing motor in database
         const updatedMotor = await updateMotor(editingMotor.id, {
           name: formData.name,
-          type: formData.type,
-          voltage: formData.voltage,
+          model: formData.model,
+          type: 'Servo', // Keep type for backward compatibility
+          voltage: 'N/A', // Keep voltage for backward compatibility (required by backend)
+          highLevel: formData.highLevel ? parseFloat(formData.highLevel) : null,
+          lowLevel: formData.lowLevel ? parseFloat(formData.lowLevel) : null,
           imageUrl: imageUrl
         })
         
@@ -216,8 +152,11 @@ const MotorSetup = () => {
         // Create new motor in database
         const newMotor = await createMotor({
           name: formData.name,
-          type: formData.type,
-          voltage: formData.voltage,
+          model: formData.model,
+          type: 'Servo', // Keep type for backward compatibility
+          voltage: 'N/A', // Keep voltage for backward compatibility (required by backend)
+          highLevel: formData.highLevel ? parseFloat(formData.highLevel) : null,
+          lowLevel: formData.lowLevel ? parseFloat(formData.lowLevel) : null,
           imageUrl: imageUrl
         })
         
@@ -228,19 +167,12 @@ const MotorSetup = () => {
       // Reset form
       setFormData({
         name: '',
-        type: 'Servo',
-        voltage: ''
+        model: '',
+        highLevel: '',
+        lowLevel: ''
       })
-      setUploadedImage(null)
-      setImagePreview(null)
       setShowAddForm(false)
       setEditingMotor(null)
-      
-      // Reset file input
-      const fileInput = document.getElementById('imageFile')
-      if (fileInput) {
-        fileInput.value = ''
-      }
     } catch (error) {
       console.error('Error saving motor:', error)
       alert('Failed to save motor. Please try again.')
@@ -252,18 +184,11 @@ const MotorSetup = () => {
     setShowAddForm(false)
     setFormData({
       name: '',
-      type: 'Servo',
-      voltage: ''
+      model: '',
+      highLevel: '',
+      lowLevel: ''
     })
-    setUploadedImage(null)
-    setImagePreview(null)
     setEditingMotor(null)
-    
-    // Reset file input
-    const fileInput = document.getElementById('imageFile')
-    if (fileInput) {
-      fileInput.value = ''
-    }
   }
 
   // Handle delete motor
@@ -293,12 +218,11 @@ const MotorSetup = () => {
   const handleEditMotor = (motor) => {
     setEditingMotor(motor)
     setFormData({
-      name: motor.name,
-      type: motor.type,
-      voltage: motor.voltage
+      name: motor.name || '',
+      model: motor.model || '',
+      highLevel: motor.highLevel ? motor.highLevel.toString() : '',
+      lowLevel: motor.lowLevel ? motor.lowLevel.toString() : ''
     })
-    setImagePreview(motor.imageUrl)
-    setUploadedImage(null)
     setShowAddForm(true)
   }
 
@@ -368,6 +292,25 @@ const MotorSetup = () => {
             <form onSubmit={handleAddMotor} className="add-motor-form">
               <div className="form-row">
                 <div className="form-group">
+                  <label htmlFor="model">Motor Model *</label>
+                  <select
+                    id="model"
+                    name="model"
+                    value={formData.model}
+                    onChange={handleInputChange}
+                    required
+                  >
+                    <option value="">Select Motor Model</option>
+                    <option value="HK Series">HK Series</option>
+                    <option value="HG Series">HG Series</option>
+                    <option value="HF Series">HF Series</option>
+                    <option value="HF-KP Series">HF-KP Series</option>
+                    <option value="LM-F Series">LM-F Series</option>
+                    <option value="TM-RB Series">TM-RB Series</option>
+                  </select>
+                </div>
+                
+                <div className="form-group">
                   <label htmlFor="name">Motor Name *</label>
                   <input
                     type="text"
@@ -375,66 +318,78 @@ const MotorSetup = () => {
                     name="name"
                     value={formData.name}
                     onChange={handleInputChange}
-                    placeholder="e.g., NEMA 23 Stepper"
+                    placeholder="e.g., Motor 1"
                     required
                   />
-                </div>
-                
-                <div className="form-group">
-                  <label htmlFor="type">Type</label>
-                  <select
-                    id="type"
-                    name="type"
-                    value={formData.type}
-                    onChange={handleInputChange}
-                  >
-                    <option value="Servo">Servo</option>
-                    <option value="Stepper">Stepper</option>
-                    <option value="DC">DC</option>
-                    <option value="Brushless">Brushless</option>
-                  </select>
-                </div>
-                
-                <div className="form-group">
-                  <label htmlFor="voltage">Voltage *</label>
-                  <input
-                    type="text"
-                    id="voltage"
-                    name="voltage"
-                    value={formData.voltage}
-                    onChange={handleInputChange}
-                    placeholder="e.g., 12V, 5V, 12-24V"
-                    required
-                  />
-                </div>
-                
-                <div className="form-group">
-                  <label htmlFor="imageFile">Upload Image (Optional)</label>
-                  <input
-                    type="file"
-                    id="imageFile"
-                    name="imageFile"
-                    accept="image/*"
-                    onChange={handleFileUpload}
-                    className="file-input"
-                  />
-                  {imagePreview && (
-                    <div className="image-preview-container" style={{ backgroundColor: 'white' }}>
-                      <div style={{ background: 'white', display: 'inline-block' }}>
-                        <img 
-                          src={imagePreview} 
-                          alt="Preview" 
-                          className="image-preview" 
-                          style={{ backgroundColor: 'white', display: 'block' }}
-                        />
-                      </div>
-                      <button type="button" onClick={handleClearImage} className="clear-image-btn">
-                        Remove
-                      </button>
-                    </div>
-                  )}
                 </div>
               </div>
+              
+              <div className="form-row">
+                <div className="form-group">
+                  <label htmlFor="highLevel">Motor Rating - High Level (HL) *</label>
+                  <input
+                    type="number"
+                    id="highLevel"
+                    name="highLevel"
+                    value={formData.highLevel}
+                    onChange={handleInputChange}
+                    placeholder="Enter High Level"
+                    step="0.01"
+                    required
+                  />
+                </div>
+                
+                <div className="form-group">
+                  <label htmlFor="lowLevel">Motor Rating - Low Level (LL) *</label>
+                  <input
+                    type="number"
+                    id="lowLevel"
+                    name="lowLevel"
+                    value={formData.lowLevel}
+                    onChange={handleInputChange}
+                    placeholder="Enter Low Level"
+                    step="0.01"
+                    required
+                  />
+                </div>
+              </div>
+              
+              {formData.model && (
+                <div className="form-row">
+                  <div className="form-group" style={{ width: '100%' }}>
+                    <label>Motor Image Preview</label>
+                    <div className="motor-image-preview" style={{ 
+                      marginTop: '10px',
+                      padding: '15px',
+                      border: '2px solid #e0e0e0',
+                      borderRadius: '8px',
+                      backgroundColor: 'white',
+                      display: 'flex',
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                      minHeight: '200px'
+                    }}>
+                      <img 
+                        src={getMotorImage(formData.model)} 
+                        alt={`${formData.model} Motor`}
+                        style={{ 
+                          maxWidth: '100%',
+                          maxHeight: '300px',
+                          objectFit: 'contain'
+                        }}
+                      />
+                    </div>
+                    <p style={{ 
+                      marginTop: '8px',
+                      fontSize: '0.85rem',
+                      color: '#666',
+                      textAlign: 'center'
+                    }}>
+                      Image will be automatically selected based on Motor Model
+                    </p>
+                  </div>
+                </div>
+              )}
               
               <div className="form-actions">
                 <button type="button" onClick={handleCancelForm} className="cancel-btn">
