@@ -350,6 +350,7 @@
 .data-logs-table {
   width: 100%;
   border-collapse: collapse;
+  border: 2px solid #000000;
 }
 
 .data-logs-table thead {
@@ -359,11 +360,12 @@
 
 .data-logs-table th {
   padding: 1rem 1.5rem;
-  text-align: left;
+  text-align: center;
   font-weight: 600;
   font-size: 0.9rem;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  border: 1px solid #000000;
 }
 
 .data-logs-table th.sortable {
@@ -389,7 +391,7 @@
 }
 
 .data-logs-table tbody tr {
-  border-bottom: 1px solid #e0e0e0;
+  border-bottom: 1px solid #000000;
   transition: background 0.2s;
 }
 
@@ -398,14 +400,14 @@
 }
 
 .data-logs-table tbody tr.data-row.critical {
-  background: #fee2e2;
+  background: #dc2626;
 }
 
 .data-logs-table tbody tr.data-row.warning {
-  background: #fef3c7;
+  background: #ea580c;
 }
 
-.data-logs-table tbody tr.data-row.normal {
+.data-logs-table tbody tr.data-row {
   background: white;
 }
 
@@ -413,6 +415,8 @@
   padding: 1rem 1.5rem;
   font-size: 0.95rem;
   color: #333;
+  border: 1px solid #000000;
+  text-align: center;
 }
 
 .parameter-cell {
@@ -442,18 +446,13 @@
 }
 
 .value-badge.critical {
-  background: #fee2e2;
-  color: #dc2626;
+  background: #dc2626;
+  color: #ffffff;
 }
 
 .value-badge.warning {
-  background: #fef3c7;
-  color: #d97706;
-}
-
-.value-badge.normal {
-  background: #d1fae5;
-  color: #059669;
+  background: #ea580c;
+  color: #ffffff;
 }
 
 .status-badge {
@@ -467,18 +466,19 @@
 }
 
 .status-badge.critical {
-  background: #fee2e2;
-  color: #dc2626;
+  background: #dc2626;
+  color: #ffffff;
 }
 
 .status-badge.warning {
-  background: #fef3c7;
-  color: #d97706;
+  background: #ea580c;
+  color: #ffffff;
 }
 
 .status-badge.normal {
-  background: #d1fae5;
-  color: #059669;
+  background: transparent;
+  color: #666;
+  border: 1px solid #e0e0e0;
 }
 
 .loading-message,
@@ -563,16 +563,16 @@
   .data-logs-table tbody tr {
     display: block;
     margin-bottom: 1rem;
-    border: 1px solid #e0e0e0;
+    border: 1px solid #000000;
     border-radius: 8px;
     padding: 1rem;
   }
 
   .data-logs-table td {
     display: block;
-    text-align: right;
+    text-align: center;
     padding: 0.5rem 0;
-    border-bottom: 1px solid #f0f0f0;
+    border-bottom: 1px solid #000000;
   }
 
   .data-logs-table td:before {

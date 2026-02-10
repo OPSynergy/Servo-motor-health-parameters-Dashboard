@@ -468,19 +468,29 @@ const DataLogs = () => {
               </thead>
               <tbody>
                 {filteredData.map((row, index) => {
-                  const status = row.currentValue > row.highLevel ? 'critical' : 
-                                row.currentValue < row.lowLevel ? 'warning' : 'normal'
+                  const currentValue = parseFloat(row.currentValue || 0)
+                  const highLevel = parseFloat(row.highLevel || 0)
+                  const lowLevel = parseFloat(row.lowLevel || 0)
+                  
+                  // Determine status: above high level = critical (red), near high level (80-100%) = warning (orange), else normal (no highlight)
+                  let status = 'normal'
+                  if (currentValue > highLevel) {
+                    status = 'critical'
+                  } else if (highLevel > 0 && currentValue >= highLevel * 0.8) {
+                    // Near high level: within 80-100% of high level
+                    status = 'warning'
+                  }
                   
                   return (
-                    <tr key={index} className={`data-row ${status}`}>
+                    <tr key={index} className={status !== 'normal' ? `data-row ${status}` : 'data-row'}>
                       <td className="parameter-cell">
                         <span className="parameter-badge">{getParameterLabel(row.parameter)}</span>
                       </td>
-                      <td>{parseFloat(row.highLevel || 0).toFixed(2)}</td>
-                      <td>{parseFloat(row.lowLevel || 0).toFixed(2)}</td>
+                      <td>{highLevel.toFixed(2)}</td>
+                      <td>{lowLevel.toFixed(2)}</td>
                       <td className="value-cell">
-                        <span className={`value-badge ${status}`}>
-                          {parseFloat(row.currentValue || 0).toFixed(2)}
+                        <span className={status !== 'normal' ? `value-badge ${status}` : ''}>
+                          {currentValue.toFixed(2)}
                         </span>
                       </td>
                       <td>{new Date(row.timestamp).toLocaleString()}</td>
