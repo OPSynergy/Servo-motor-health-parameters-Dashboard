@@ -399,7 +399,7 @@ app.get('/api/live-trends/historical', (req, res) => {
     
     // Only filter by time if not 8 hours (480 minutes)
     if (minutes !== 480) {
-      // Calculate target time in local timezone
+      // Calculate target time (start time) in local timezone - data FROM this time TO NOW
       const targetTime = new Date(Date.now() - minutes * 60 * 1000)
       const year = targetTime.getFullYear()
       const month = String(targetTime.getMonth() + 1).padStart(2, '0')
@@ -409,9 +409,15 @@ app.get('/api/live-trends/historical', (req, res) => {
       const secs = String(targetTime.getSeconds()).padStart(2, '0')
       const targetTimestamp = `${year}-${month}-${day} ${hours}:${mins}:${secs}`
       
-      query += hasWhere ? ' AND timestamp <= ?' : ' WHERE timestamp <= ?'
+      // Get data FROM target time onwards (timestamp >= targetTimestamp)
+      // Use datetime() function for proper comparison in SQLite
+      query += hasWhere ? ' AND datetime(timestamp) >= datetime(?)' : ' WHERE datetime(timestamp) >= datetime(?)'
       params.push(targetTimestamp)
       hasWhere = true
+      
+      console.log(`[Historical Query] Fetching data for ${minutes} minutes ago. Target time: ${targetTimestamp}, Parameter: ${parameter || 'all'}`)
+      console.log(`[Historical Query] Full query: ${query}`)
+      console.log(`[Historical Query] Params:`, params)
     }
     
     if (parameter) {
@@ -428,6 +434,11 @@ app.get('/api/live-trends/historical', (req, res) => {
     }
     
     const data = db.prepare(query).all(...params)
+    
+    console.log(`[Historical Query] Found ${data.length} records for ${minutes} minutes ago, parameter: ${parameter || 'all'}`)
+    if (data.length > 0) {
+      console.log(`[Historical Query] First record timestamp: ${data[0].timestamp}, Last record timestamp: ${data[data.length - 1].timestamp}`)
+    }
     
     res.json(data.map(trend => {
       // Convert SQLite timestamp to ISO string for consistent handling

@@ -1,6 +1,6 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { Line } from 'react-chartjs-2'
-import { FaPencilAlt } from 'react-icons/fa'
+import { FaPencilAlt, FaSearch, FaTimes } from 'react-icons/fa'
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -12,6 +12,7 @@ import {
   Legend,
   Filler
 } from 'chart.js'
+import zoomPlugin from 'chartjs-plugin-zoom'
 import { saveLiveTrend, getHistoricalTrends, deleteAllTrendsForParameter } from '../services/liveTrendsApi'
 import './LiveTrendsGraph.css'
 
@@ -23,10 +24,13 @@ ChartJS.register(
   Title,
   Tooltip,
   Legend,
-  Filler
+  Filler,
+  zoomPlugin
 )
 
 const LiveTrendsGraph = ({ type }) => {
+  const chartRef = useRef(null)
+  
   // Initial configuration for colors and titles
   const config = {
     vibration: {
@@ -86,6 +90,9 @@ const LiveTrendsGraph = ({ type }) => {
   const [graphData, setGraphData] = useState([])
   const [graphLabels, setGraphLabels] = useState([])
   const [lastClearTime, setLastClearTime] = useState(null)
+  const [chartKey, setChartKey] = useState(0)
+  const [startTime, setStartTime] = useState('')
+  const [endTime, setEndTime] = useState('')
 
   // Update levels when type changes
   useEffect(() => {
@@ -182,67 +189,168 @@ const LiveTrendsGraph = ({ type }) => {
     return () => clearInterval(saveInterval)
   }, [data, levels, type, selectedTimeOption])
 
-  // Update graph data based on selected time option or live data
+  // Update graph data based on selected time option or live data, with optional time window filtering
   useEffect(() => {
+    let sourceData = []
+    let useHistorical = false
+    
     if (selectedTimeOption) {
       // When time option is selected, use historical data
+      useHistorical = true
+      sourceData = historicalData
+    } else if (startTime || endTime) {
+      // When time window is set but no time option, use historical data if available
       if (historicalData.length > 0) {
-        // Sort by timestamp to ensure chronological order
-        const sortedData = [...historicalData].sort((a, b) => {
-          const dateA = new Date(a.timestamp)
-          const dateB = new Date(b.timestamp)
-          return dateA.getTime() - dateB.getTime()
-        })
-        
-        const sortedValues = []
-        const labels = []
-        
-        sortedData.forEach(item => {
-          // Parse the current value - handle both number and string
-          // Backend returns currentValue (camelCase), not current_value
-          let value = item.currentValue !== undefined ? item.currentValue : item.current_value
-          if (typeof value === 'string') {
-            value = parseFloat(value)
-          }
-          if (typeof value === 'number' && !isNaN(value)) {
-            sortedValues.push(value)
-            
-            // Create label from timestamp
-            const date = new Date(item.timestamp)
-            if (!isNaN(date.getTime())) {
-              const hours = String(date.getHours()).padStart(2, '0')
-              const minutes = String(date.getMinutes()).padStart(2, '0')
-              const seconds = String(date.getSeconds()).padStart(2, '0')
-              labels.push(`${hours}:${minutes}:${seconds}`)
-            }
-          }
-        })
-        
-        // Ensure labels and values have the same length
-        const minLength = Math.min(sortedValues.length, labels.length)
-        if (minLength > 0) {
-          setGraphData(sortedValues.slice(0, minLength))
-          setGraphLabels(labels.slice(0, minLength))
-        } else {
-          setGraphData([])
-          setGraphLabels([])
+        useHistorical = true
+        sourceData = historicalData
+      } else if (loadingHistorical) {
+        // If loading, don't process yet - wait for data
+        return
+      } else {
+        // If time window is set but no historical data and not loading, show live data as fallback
+        if (data.length > 0) {
+          setGraphData(data)
+          setGraphLabels(Array.from({ length: data.length }, (_, i) => `Sample ${i + 1}`))
+          return
         }
-      } else if (!loadingHistorical) {
-        // Only clear if loading is complete and no data
+        // If no data at all, clear
         setGraphData([])
         setGraphLabels([])
+        return
       }
     } else {
-      // When no time option is selected, use live data
+      // When no time option is selected and no time window, use live data
       if (data.length > 0) {
         setGraphData(data)
         setGraphLabels(Array.from({ length: data.length }, (_, i) => `Sample ${i + 1}`))
+        return
+      }
+    }
+    
+    // Filter by time window if startTime or endTime is set
+    let filteredData = [...sourceData]
+    
+    if (startTime || endTime) {
+      // Get today's date
+      const today = new Date()
+      const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
+      
+      // Combine today's date with selected time
+      const startDateTime = startTime ? `${todayStr}T${startTime}:00` : null
+      const endDateTime = endTime ? `${todayStr}T${endTime}:00` : null
+      
+      const startDate = startDateTime ? new Date(startDateTime) : null
+      const endDate = endDateTime ? new Date(endDateTime) : null
+      
+      filteredData = sourceData.filter(item => {
+        const itemDate = new Date(item.timestamp)
+        
+        // Extract time components from item date
+        const itemHours = itemDate.getHours()
+        const itemMinutes = itemDate.getMinutes()
+        const itemSeconds = itemDate.getSeconds()
+        const itemTimeInMinutes = itemHours * 60 + itemMinutes + itemSeconds / 60
+        
+        // Extract time components from start/end times
+        if (startDate) {
+          const startHours = startDate.getHours()
+          const startMinutes = startDate.getMinutes()
+          const startTimeInMinutes = startHours * 60 + startMinutes
+          if (itemTimeInMinutes < startTimeInMinutes) return false
+        }
+        
+        if (endDate) {
+          const endHours = endDate.getHours()
+          const endMinutes = endDate.getMinutes()
+          const endTimeInMinutes = endHours * 60 + endMinutes
+          if (itemTimeInMinutes > endTimeInMinutes) return false
+        }
+        
+        return true
+      })
+    }
+    
+    if (filteredData.length > 0) {
+      // Sort by timestamp to ensure chronological order
+      const sortedData = [...filteredData].sort((a, b) => {
+        const dateA = new Date(a.timestamp)
+        const dateB = new Date(b.timestamp)
+        return dateA.getTime() - dateB.getTime()
+      })
+      
+      const sortedValues = []
+      const labels = []
+      
+      sortedData.forEach(item => {
+        // Parse the current value - handle both number and string
+        // Backend returns currentValue (camelCase), not current_value
+        let value = item.currentValue !== undefined ? item.currentValue : item.current_value
+        if (typeof value === 'string') {
+          value = parseFloat(value)
+        }
+        if (typeof value === 'number' && !isNaN(value)) {
+          sortedValues.push(value)
+          
+          // Create label from timestamp
+          const date = new Date(item.timestamp)
+          if (!isNaN(date.getTime())) {
+            const hours = String(date.getHours()).padStart(2, '0')
+            const minutes = String(date.getMinutes()).padStart(2, '0')
+            const seconds = String(date.getSeconds()).padStart(2, '0')
+            labels.push(`${hours}:${minutes}:${seconds}`)
+          }
+        }
+      })
+      
+      // Ensure labels and values have the same length
+      const minLength = Math.min(sortedValues.length, labels.length)
+      if (minLength > 0) {
+        setGraphData(sortedValues.slice(0, minLength))
+        setGraphLabels(labels.slice(0, minLength))
       } else {
         setGraphData([])
         setGraphLabels([])
       }
+    } else if (useHistorical && !loadingHistorical) {
+      // If we're using historical data but have no results after filtering, clear
+      setGraphData([])
+      setGraphLabels([])
     }
-  }, [selectedTimeOption, historicalData, data, loadingHistorical])
+    // If useHistorical is false, live data will be handled in the else block above
+  }, [selectedTimeOption, historicalData, data, loadingHistorical, startTime, endTime])
+
+  // Fetch all historical data when time window is set but no time option is selected
+  useEffect(() => {
+    if ((startTime || endTime) && !selectedTimeOption && historicalData.length === 0 && !loadingHistorical) {
+      const fetchAllData = async () => {
+        setLoadingHistorical(true)
+        try {
+          const clearTimeKey = `lastClearTime-${type}`
+          const lastClear = localStorage.getItem(clearTimeKey)
+          const afterTimestamp = lastClear || null
+          // Fetch last 24 hours of data for time window filtering
+          const data = await getHistoricalTrends(type, 1440, afterTimestamp) // 24 hours = 1440 minutes
+          setHistoricalData(data)
+        } catch (error) {
+          console.error('Error fetching data for time window:', error)
+        } finally {
+          setLoadingHistorical(false)
+        }
+      }
+      fetchAllData()
+    }
+  }, [startTime, endTime, selectedTimeOption, type])
+
+  // Update chart key when graphData changes for historical data to force re-render
+  useEffect(() => {
+    if ((selectedTimeOption || startTime || endTime) && graphData.length > 0 && !loadingHistorical) {
+      // Use a small delay to ensure graphData has been fully processed
+      const timeoutId = setTimeout(() => {
+        setChartKey(prev => prev + 1)
+      }, 100)
+      return () => clearTimeout(timeoutId)
+    }
+  }, [graphData.length, selectedTimeOption, loadingHistorical, historicalData.length, startTime, endTime])
 
   const handleSetHL = async () => {
     const value = parseFloat(tempHL)
@@ -464,6 +572,39 @@ const LiveTrendsGraph = ({ type }) => {
             return `${context.dataset.label}: ${context.parsed.y.toFixed(2)}`
           }
         }
+      },
+      zoom: {
+        zoom: {
+          wheel: {
+            enabled: true,
+            speed: 0.1
+          },
+          pinch: {
+            enabled: true
+          },
+          mode: 'xy',
+          drag: {
+            enabled: true,
+            modifierKey: 'ctrl',
+            threshold: 10
+          }
+        },
+        pan: {
+          enabled: true,
+          modifierKey: null,
+          threshold: 10,
+          mode: 'xy'
+        },
+        limits: {
+          x: {
+            min: 'original',
+            max: 'original'
+          },
+          y: {
+            min: 'original',
+            max: 'original'
+          }
+        }
       }
     },
     scales: {
@@ -623,7 +764,19 @@ const LiveTrendsGraph = ({ type }) => {
           <div className="time-scaling-wrapper">
             <div 
               className="stat-card time-scaling-card"
-              onClick={() => setShowTimeOptions(!showTimeOptions)}
+              onClick={() => {
+                if (selectedTimeOption) {
+                  // If a time option is selected, clicking clears it and returns to live mode
+                  setSelectedTimeOption(null)
+                  setHistoricalData([])
+                  setGraphData([])
+                  setGraphLabels([])
+                  setChartKey(prev => prev + 1)
+                } else {
+                  // Otherwise, toggle the time options menu
+                  setShowTimeOptions(!showTimeOptions)
+                }
+              }}
               style={{ cursor: 'pointer' }}
             >
               <h3 className="time-scaling-title">
@@ -646,17 +799,34 @@ const LiveTrendsGraph = ({ type }) => {
                     className={`time-option-card ${showTimeOptions ? 'roll-in' : 'roll-out'}`}
                     style={{ animationDelay: `${index * 0.08}s` }}
                     onClick={async () => {
+                      // Clear previous data and reset graph
+                      setGraphData([])
+                      setGraphLabels([])
                       setSelectedTimeOption(option)
                       setShowTimeOptions(false)
                       setLoadingHistorical(true)
+                      setChartKey(prev => prev + 1) // Force chart re-render
+                      
                       try {
                         // Get the last clear time for this parameter from localStorage
                         const clearTimeKey = `lastClearTime-${type}`
                         const lastClear = localStorage.getItem(clearTimeKey)
                         const afterTimestamp = lastClear || null
                         
+                        console.log(`[Frontend] Fetching historical data for ${option} (${minutesMap[option]} minutes), parameter: ${type}, afterTimestamp: ${afterTimestamp}`)
+                        
+                        // Fetch historical data for the selected time period
                         const data = await getHistoricalTrends(type, minutesMap[option], afterTimestamp)
+                        
+                        console.log(`[Frontend] Received ${data.length} records from backend`)
+                        if (data.length > 0) {
+                          console.log(`[Frontend] First record:`, data[0])
+                          console.log(`[Frontend] Last record:`, data[data.length - 1])
+                        }
+                        
                         setHistoricalData(data)
+                        // Force chart re-render after data is loaded
+                        setChartKey(prev => prev + 1)
                       } catch (error) {
                         console.error('Error fetching historical data:', error)
                         setHistoricalData([])
@@ -674,14 +844,48 @@ const LiveTrendsGraph = ({ type }) => {
         </div>
       </div>
       
-      <div className="graph-container">
+      <div className="graph-container" style={{ position: 'relative' }}>
+        {finalData.length > 0 && (
+          <button
+            onClick={() => {
+              if (chartRef.current) {
+                chartRef.current.resetZoom()
+              }
+            }}
+            style={{
+              position: 'absolute',
+              top: '10px',
+              right: '10px',
+              zIndex: 10,
+              padding: '8px 16px',
+              backgroundColor: '#667eea',
+              color: 'white',
+              border: 'none',
+              borderRadius: '6px',
+              cursor: 'pointer',
+              fontSize: '12px',
+              fontWeight: '600',
+              boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+            }}
+            onMouseEnter={(e) => {
+              e.target.style.backgroundColor = '#5568d3'
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.backgroundColor = '#667eea'
+            }}
+            title="Reset Zoom"
+          >
+            Reset Zoom
+          </button>
+        )}
         {finalData.length > 0 ? (
           <Line 
-            key={`${type}-${selectedTimeOption || 'live'}-${finalData.length}-${yAxisRange.min.toFixed(2)}-${yAxisRange.max.toFixed(2)}`}
+            ref={chartRef}
+            key={`${type}-${selectedTimeOption || 'live'}-${finalData.length}-${graphData.length}-${yAxisRange.min.toFixed(2)}-${yAxisRange.max.toFixed(2)}-${chartKey}`}
             data={chartData} 
             options={options} 
             redraw={true}
-            updateMode="active"
+            updateMode="default"
           />
         ) : (
           <div style={{ 
@@ -692,80 +896,190 @@ const LiveTrendsGraph = ({ type }) => {
             color: '#666',
             fontSize: '16px'
           }}>
-            {selectedTimeOption && loadingHistorical 
+            {loadingHistorical 
               ? 'Loading historical data...' 
-              : selectedTimeOption 
+              : (selectedTimeOption || (startTime || endTime))
                 ? 'No data available for the selected time period' 
                 : 'Generating live data...'}
           </div>
         )}
       </div>
 
-      {selectedTimeOption && (
-        <div className="historical-data-section">
-          <div className="historical-data-header">
-            <h3 className="historical-data-title">
-              {selectedTimeOption} Ago Data Records.
-            </h3>
+      {/* Time Window Filter */}
+      <div style={{
+        marginTop: '20px',
+        padding: '20px',
+        backgroundColor: '#f8f9fa',
+        borderRadius: '12px',
+        border: '1px solid #e5e7eb'
+      }}>
+        <h3 style={{
+          margin: '0 0 16px 0',
+          fontSize: '16px',
+          fontWeight: '600',
+          color: '#111827',
+          textAlign: 'center'
+        }}>
+          Time Window Filter
+        </h3>
+        <div style={{
+          display: 'flex',
+          gap: '20px',
+          alignItems: 'center',
+          justifyContent: 'center',
+          flexWrap: 'wrap'
+        }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', minWidth: '200px' }}>
+            <label style={{
+              fontSize: '13px',
+              fontWeight: '500',
+              color: '#6b7280'
+            }}>
+              Start Time (Today)
+            </label>
+            <input
+              type="time"
+              value={startTime}
+              onChange={(e) => setStartTime(e.target.value)}
+              style={{
+                padding: '10px 12px',
+                border: '2px solid #e5e7eb',
+                borderRadius: '8px',
+                fontSize: '14px',
+                outline: 'none',
+                transition: 'border-color 0.2s',
+                backgroundColor: 'white'
+              }}
+              onFocus={(e) => e.target.style.borderColor = '#667eea'}
+              onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
+            />
+          </div>
+          
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', minWidth: '200px' }}>
+            <label style={{
+              fontSize: '13px',
+              fontWeight: '500',
+              color: '#6b7280'
+            }}>
+              End Time (Today)
+            </label>
+            <input
+              type="time"
+              value={endTime}
+              onChange={(e) => setEndTime(e.target.value)}
+              style={{
+                padding: '10px 12px',
+                border: '2px solid #e5e7eb',
+                borderRadius: '8px',
+                fontSize: '14px',
+                outline: 'none',
+                transition: 'border-color 0.2s',
+                backgroundColor: 'white'
+              }}
+              onFocus={(e) => e.target.style.borderColor = '#667eea'}
+              onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
+            />
+          </div>
+          
+          <div style={{ display: 'flex', alignItems: 'flex-end', gap: '10px' }}>
             <button
-              className="clear-data-btn"
               onClick={async () => {
-                if (window.confirm(`Are you sure you want to delete all data records for ${currentConfig.title}? This action cannot be undone.`)) {
+                // If time window is set but no historical data, fetch it
+                if ((startTime || endTime) && historicalData.length === 0 && !loadingHistorical) {
+                  setLoadingHistorical(true)
                   try {
-                    await deleteAllTrendsForParameter(type)
-                    // Store the current timestamp as the last clear time
                     const clearTimeKey = `lastClearTime-${type}`
-                    localStorage.setItem(clearTimeKey, new Date().toISOString())
-                    setHistoricalData([])
-                    setSelectedTimeOption(null)
-                    setGraphData([])
-                    setGraphLabels([])
-                    alert('All data records deleted successfully')
+                    const lastClear = localStorage.getItem(clearTimeKey)
+                    const afterTimestamp = lastClear || null
+                    // Fetch last 24 hours of data for time window filtering
+                    const data = await getHistoricalTrends(type, 1440, afterTimestamp) // 24 hours = 1440 minutes
+                    setHistoricalData(data)
                   } catch (error) {
-                    console.error('Error deleting data:', error)
-                    alert('Failed to delete data records. Please try again.')
+                    console.error('Error fetching data for time window:', error)
+                  } finally {
+                    setLoadingHistorical(false)
                   }
                 }
+                // Force chart update
+                setChartKey(prev => prev + 1)
               }}
-              title="Clear all data for this parameter"
+              disabled={!startTime && !endTime}
+              title="Search"
+              style={{
+                padding: '10px',
+                backgroundColor: (!startTime && !endTime) ? '#9ca3af' : '#667eea',
+                color: 'white',
+                border: 'none',
+                borderRadius: '8px',
+                fontSize: '18px',
+                fontWeight: '600',
+                cursor: (!startTime && !endTime) ? 'not-allowed' : 'pointer',
+                transition: 'background-color 0.2s',
+                height: '42px',
+                width: '42px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                opacity: (!startTime && !endTime) ? 0.6 : 1
+              }}
+              onMouseEnter={(e) => {
+                if (startTime || endTime) {
+                  e.target.style.backgroundColor = '#5568d3'
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (startTime || endTime) {
+                  e.target.style.backgroundColor = '#667eea'
+                }
+              }}
             >
-              Clear Data
+              <FaSearch />
+            </button>
+            <button
+              onClick={() => {
+                setStartTime('')
+                setEndTime('')
+                setChartKey(prev => prev + 1)
+              }}
+              title="Clear Filter"
+              style={{
+                padding: '10px',
+                backgroundColor: '#ef4444',
+                color: 'white',
+                border: 'none',
+                borderRadius: '8px',
+                fontSize: '18px',
+                fontWeight: '600',
+                cursor: 'pointer',
+                transition: 'background-color 0.2s',
+                height: '42px',
+                width: '42px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}
+              onMouseEnter={(e) => e.target.style.backgroundColor = '#dc2626'}
+              onMouseLeave={(e) => e.target.style.backgroundColor = '#ef4444'}
+            >
+              <FaTimes />
             </button>
           </div>
-          {loadingHistorical ? (
-            <div className="historical-data-loading">Loading...</div>
-          ) : historicalData.length > 0 ? (
-            <div className="historical-data-table-container">
-              <table className="historical-data-table">
-                <thead>
-                  <tr>
-                    <th>Parameter</th>
-                    <th>High Level</th>
-                    <th>Low Level</th>
-                    <th>Current Value</th>
-                    <th>Timestamp</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {historicalData.map((row, index) => (
-                    <tr key={index}>
-                      <td>{row.parameter}</td>
-                      <td>{row.highLevel.toFixed(2)}</td>
-                      <td>{row.lowLevel.toFixed(2)}</td>
-                      <td>{row.currentValue.toFixed(2)}</td>
-                      <td>{new Date(row.timestamp).toLocaleString()}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          ) : (
-            <div className="historical-data-empty">
-              Data not found in the database
-            </div>
-          )}
         </div>
-      )}
+        {(startTime || endTime) && (
+          <div style={{
+            marginTop: '12px',
+            padding: '10px',
+            backgroundColor: '#dbeafe',
+            borderRadius: '6px',
+            fontSize: '13px',
+            color: '#1e40af',
+            textAlign: 'center'
+          }}>
+            Showing data from {startTime ? `${new Date().toLocaleDateString()} ${startTime}` : 'beginning'} to {endTime ? `${new Date().toLocaleDateString()} ${endTime}` : 'end'}
+          </div>
+        )}
+      </div>
+
     </div>
   )
 }
