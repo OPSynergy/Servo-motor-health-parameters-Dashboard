@@ -8,7 +8,8 @@
     "dev:backend": "cd backend && npm run dev",
     "dev:full": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
     "build": "cd frontend && npm run build",
-    "report:docx": "node scripts/generate-report-docx.mjs"
+    "report:docx": "node scripts/generate-report-docx.mjs",
+    "seed:alarms": "node backend/seed-mock-alarms.mjs"
   },
   "dependencies": {
     "docx": "^9.5.0"

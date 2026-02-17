@@ -12,6 +12,7 @@ import Hero3D from './Hero3D'
 import './App.css'
 import MotorSetup from './pages/MotorSetup'
 import DataLogs from './pages/DataLogs'
+import NewAlarmsPopup from './components/NewAlarmsPopup'
 
 function App() {
   const [activePage, setActivePage] = useState('home')
@@ -73,6 +74,9 @@ function App() {
 
       {/* Live Status Indicator - Top Right */}
       <LiveStatusIndicator />
+
+      {/* Global popup when new alarms are detected (e.g. after seed script) */}
+      <NewAlarmsPopup />
 
       {/* Layer 3: Content (z-index: 100) */}
       <main className={`main-content ${sidebarCollapsed ? 'sidebar-collapsed' : ''}`}>

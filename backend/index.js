@@ -72,6 +72,21 @@ function initializeDatabase() {
     ON live_trends(parameter, timestamp DESC)
   `)
 
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS alarms (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      type TEXT NOT NULL,
+      message TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'active',
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      resolved_at DATETIME
+    )
+  `)
+  db.exec(`
+    CREATE INDEX IF NOT EXISTS idx_alarms_status_created
+    ON alarms(status, created_at DESC)
+  `)
+
   // Migration: rename current-consumption to power-consumption in existing data
   try {
     const update = db.prepare(`UPDATE live_trends SET parameter = 'power-consumption' WHERE parameter = 'current-consumption'`)
@@ -495,6 +510,36 @@ app.delete('/api/live-trends', (req, res) => {
   } catch (error) {
     console.error('Error deleting live trends:', error)
     res.status(500).json({ error: 'Failed to delete live trend data' })
+  }
+})
+
+// Alarms API
+app.get('/api/alarms/count', (req, res) => {
+  try {
+    const row = db.prepare('SELECT COUNT(*) as count FROM alarms').get()
+    res.json({ count: row.count })
+  } catch (error) {
+    console.error('Error fetching alarm count:', error)
+    res.status(500).json({ error: 'Failed to fetch alarm count' })
+  }
+})
+
+app.get('/api/alarms', (req, res) => {
+  try {
+    const rows = db.prepare(
+      'SELECT id, type, message, status, created_at, resolved_at FROM alarms ORDER BY created_at DESC'
+    ).all()
+    res.json(rows.map(row => ({
+      id: row.id,
+      type: row.type,
+      message: row.message,
+      status: row.status,
+      createdAt: row.created_at,
+      resolvedAt: row.resolved_at
+    })))
+  } catch (error) {
+    console.error('Error fetching alarms:', error)
+    res.status(500).json({ error: 'Failed to fetch alarms' })
   }
 })
 
