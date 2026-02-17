@@ -938,6 +938,112 @@ body:has(.sidebar-collapsed) .home-logo-container {
   margin: 0 0 12px 0;
 }
 
+.mhi-levels-row {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid #e5e7eb;
+}
+
+.mhi-level-item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.mhi-level-item.mhi-level-editable {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.mhi-edit-btn {
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 6px;
+  background: #e5e7eb;
+  color: #374151;
+  cursor: pointer;
+  font-size: 12px;
+  transition: background 0.2s, color 0.2s;
+  margin-left: auto;
+}
+
+.mhi-edit-btn:hover {
+  background: #3b82f6;
+  color: #fff;
+}
+
+.mhi-level-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #6b7280;
+  min-width: 100px;
+}
+
+.mhi-level-value-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.mhi-level-input {
+  width: 72px;
+  padding: 6px 10px;
+  border: 2px solid #3b82f6;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.mhi-level-input:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3);
+}
+
+.mhi-level-value {
+  font-size: 14px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.mhi-set-btn {
+  padding: 6px 12px;
+  border: none;
+  border-radius: 8px;
+  background: #10b981;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.mhi-set-btn:hover {
+  background: #059669;
+}
+
+.mhi-cancel-btn {
+  padding: 6px 10px;
+  border: none;
+  border-radius: 8px;
+  background: #ef4444;
+  color: #fff;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.mhi-cancel-btn:hover {
+  background: #dc2626;
+}
+
 .health-main-card {
   flex: 1;
   min-height: 0;
@@ -1811,5 +1917,11 @@ body:has(.sidebar-collapsed) .home-logo-container {
 .home-logo-container-right img,
 .home-header-center,
 .home-header-center * {
+  pointer-events: auto !important;
+}
+
+/* Re-enable for Motor Health page so Set MHI Value edit button and inputs work */
+.motor-health-page,
+.motor-health-page * {
   pointer-events: auto !important;
 }

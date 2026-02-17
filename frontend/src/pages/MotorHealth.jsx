@@ -8,7 +8,8 @@ import {
   FaExclamationTriangle,
   FaShieldAlt,
   FaCog,
-  FaLink
+  FaLink,
+  FaPencilAlt
 } from 'react-icons/fa'
 import { getHealthIndex } from '../services/healthIndexApi'
 import { getLatestTrends } from '../services/liveTrendsApi'
@@ -24,10 +25,25 @@ const LIVE_PARAMS = [
   { id: 'torque', label: 'Torque', unit: 'Nm', icon: FaCog, color: '#06b6d4' }
 ]
 
+const MHI_SET_VALUE_KEY = 'mhi-set-value'
+const getInitialMhiSetValue = () => {
+  try {
+    const saved = localStorage.getItem(MHI_SET_VALUE_KEY)
+    if (saved != null) {
+      const v = parseFloat(saved)
+      if (!Number.isNaN(v) && v >= 0 && v <= 1) return v
+    }
+  } catch (e) {}
+  return 0.85
+}
+
 const MotorHealth = () => {
   const [mhiData, setMhiData] = useState({ mhi: null, updatedAt: null, isFallback: false })
   const [mhiError, setMhiError] = useState(null)
   const [liveParams, setLiveParams] = useState({}) // { [paramId]: { currentValue, highLevel, lowLevel, timestamp } }
+  const [mhiSetValue, setMhiSetValue] = useState(getInitialMhiSetValue)
+  const [tempMhiSetValue, setTempMhiSetValue] = useState(mhiSetValue)
+  const [isEditingMhiValue, setIsEditingMhiValue] = useState(false)
 
   // Real-time MHI from health-index API (same source as MQTT)
   useEffect(() => {
@@ -74,6 +90,25 @@ const MotorHealth = () => {
     return () => clearInterval(interval)
   }, [])
 
+  useEffect(() => {
+    setTempMhiSetValue(mhiSetValue)
+  }, [mhiSetValue])
+
+  useEffect(() => {
+    localStorage.setItem(MHI_SET_VALUE_KEY, String(mhiSetValue))
+  }, [mhiSetValue])
+
+  const handleSetMhiValue = () => {
+    const value = parseFloat(tempMhiSetValue)
+    if (!Number.isNaN(value) && value >= 0 && value <= 1) {
+      setMhiSetValue(value)
+      setIsEditingMhiValue(false)
+    } else {
+      alert('MHI value must be between 0 and 1')
+      setTempMhiSetValue(mhiSetValue)
+    }
+  }
+
   // Overall health %: MHI is 0–1, display as 0–100%
   const overallPercent = mhiData.mhi != null && !Number.isNaN(mhiData.mhi) ? Math.round(mhiData.mhi * 100) : null
   const displayPercent = overallPercent != null ? overallPercent : 87
@@ -84,6 +119,16 @@ const MotorHealth = () => {
     if (percentage >= 60) return '#f59e0b'
     return '#ef4444'
   }
+
+  // MHI color from user-set MHI value (threshold: above = green, below = amber/red)
+  const getMhiColorFromSetValue = (mhi) => {
+    if (mhi == null || Number.isNaN(mhi)) return '#6b7280'
+    if (mhi >= mhiSetValue) return '#10b981'
+    if (mhi >= mhiSetValue * 0.7) return '#f59e0b'
+    return '#ef4444'
+  }
+
+  const mhiColor = mhiData.mhi != null ? getMhiColorFromSetValue(mhiData.mhi) : getHealthColor(overallPercent)
 
   const getStatusBadge = (status) => {
     const badges = {
@@ -200,7 +245,7 @@ const MotorHealth = () => {
                 percentage={displayPercent} 
                 size={220}
                 strokeWidth={14}
-                color={getHealthColor(overallPercent != null ? overallPercent : displayPercent)}
+                color={mhiColor}
               />
               <div className="health-details">
                 <div className="health-detail-item">
@@ -231,7 +276,7 @@ const MotorHealth = () => {
               <span className="mhi-value-card-label">Motor Health Index (MHI)</span>
               <span
                 className="mhi-value-card-value"
-                style={{ color: getHealthColor(overallPercent != null ? overallPercent : null) }}
+                style={{ color: mhiColor }}
               >
                 {mhiData.mhi != null && !Number.isNaN(mhiData.mhi)
                   ? Number(mhiData.mhi).toFixed(3)
@@ -245,6 +290,49 @@ const MotorHealth = () => {
                   ? 'Using default until MQTT sends MHI'
                   : 'Waiting for data…'}
             </p>
+
+            <div className="mhi-levels-row">
+              <div className="mhi-level-item mhi-level-editable">
+                <span className="mhi-level-label">Set MHI Value:</span>
+                <div className="mhi-level-value-wrap">
+                  {isEditingMhiValue ? (
+                    <>
+                      <input
+                        type="number"
+                        className="mhi-level-input"
+                        min="0"
+                        max="1"
+                        step="0.01"
+                        value={tempMhiSetValue}
+                        onChange={(e) => setTempMhiSetValue(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && handleSetMhiValue()}
+                        autoFocus
+                      />
+                      <button type="button" className="mhi-set-btn" onClick={handleSetMhiValue}>Set</button>
+                      <button
+                        type="button"
+                        className="mhi-cancel-btn"
+                        onClick={() => { setTempMhiSetValue(mhiSetValue); setIsEditingMhiValue(false) }}
+                      >
+                        ✕
+                      </button>
+                    </>
+                  ) : (
+                    <span className="mhi-level-value">{mhiSetValue.toFixed(2)}</span>
+                  )}
+                </div>
+                {!isEditingMhiValue && (
+                  <button
+                    type="button"
+                    className="mhi-edit-btn"
+                    onClick={() => setIsEditingMhiValue(true)}
+                    title="Edit MHI Value"
+                  >
+                    <FaPencilAlt />
+                  </button>
+                )}
+              </div>
+            </div>
           </div>
         </div>
 

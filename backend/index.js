@@ -703,7 +703,9 @@ const server = app.listen(PORT, () => {
         predictiveDataBuffer.push({ timestamp: ts, iso, ...data })
         if (predictiveDataBuffer.length > PREDICTIVE_BUFFER_MAX) predictiveDataBuffer.shift()
 
-        // Store every numeric field in live_trends (motor.db)
+        // Store numeric fields in live_trends only if NOT one of the main MQTT params.
+        // Main topic (esp/live) is the single source for: vibration, temperature, power-consumption, belt-tension, speed, torque.
+        const MAIN_MQTT_PARAMS = new Set(['vibration', 'temperature', 'power-consumption', 'belt-tension', 'speed', 'torque'])
         const skipKeys = new Set(['timestamp', 'iso'])
         for (const [key, val] of Object.entries(data)) {
           if (skipKeys.has(key)) continue
@@ -711,6 +713,7 @@ const server = app.listen(PORT, () => {
           if (Number.isNaN(num)) continue
           num = Math.round(num * 100) / 100
           const param = PREDICTIVE_PARAM_MAP[key] || key.replace(/_/g, '-')
+          if (MAIN_MQTT_PARAMS.has(param)) continue
           const cfg = MQTT_PARAM_CONFIG[param]
           const hl = cfg ? cfg.hl : PREDICTIVE_DEFAULT_HL
           const ll = cfg ? cfg.ll : PREDICTIVE_DEFAULT_LL
