@@ -845,6 +845,11 @@ body:has(.sidebar-collapsed) .home-logo-container {
 }
 
 /* Motor Health Page Styles */
+.page-container.motor-health-page {
+  max-width: none;
+  width: 100%;
+}
+
 .motor-health-page .dashboard-header {
   flex-wrap: wrap;
   gap: 16px;
@@ -863,24 +868,34 @@ body:has(.sidebar-collapsed) .home-logo-container {
 .health-overview-section {
   display: grid;
   grid-template-columns: 1fr 2fr;
-  gap: 24px;
+  gap: 32px;
   margin-bottom: 32px;
   align-items: stretch;
+  min-height: 65vh;
+}
+
+.motor-health-page .health-overview-section {
+  grid-template-columns: 2fr 3fr;
+  gap: 36px;
 }
 
 .health-overview-left {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 24px;
   min-height: 100%;
 }
 
 .mhi-value-card {
   background: #ffffff;
   border: 1px solid #e5e7eb;
-  border-radius: 16px;
-  padding: 20px 24px;
+  border-radius: 20px;
+  padding: 28px 32px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+.motor-health-page .mhi-value-card {
+  padding: 32px 36px;
 }
 
 .mhi-value-card-header {
@@ -901,6 +916,14 @@ body:has(.sidebar-collapsed) .home-logo-container {
   font-size: 28px;
   font-weight: 700;
   line-height: 1.2;
+}
+
+.motor-health-page .mhi-value-card-value {
+  font-size: 36px;
+}
+
+.motor-health-page .mhi-value-card-label {
+  font-size: 14px;
 }
 
 .mhi-value-card-updated {
@@ -927,8 +950,17 @@ body:has(.sidebar-collapsed) .home-logo-container {
   flex-direction: column;
 }
 
+.motor-health-page .health-main-card {
+  padding: 40px 44px;
+  border-radius: 24px;
+}
+
 .health-header {
   margin-bottom: 32px;
+}
+
+.motor-health-page .health-header {
+  margin-bottom: 36px;
 }
 
 .health-title-section {
@@ -937,9 +969,17 @@ body:has(.sidebar-collapsed) .home-logo-container {
   gap: 16px;
 }
 
+.motor-health-page .health-title-section {
+  gap: 20px;
+}
+
 .health-shield-icon {
   font-size: 32px;
   color: #10b981;
+}
+
+.motor-health-page .health-shield-icon {
+  font-size: 40px;
 }
 
 .health-title-section h2 {
@@ -949,10 +989,18 @@ body:has(.sidebar-collapsed) .home-logo-container {
   margin: 0 0 4px 0;
 }
 
+.motor-health-page .health-title-section h2 {
+  font-size: 24px;
+}
+
 .health-title-section p {
   font-size: 14px;
   color: #6b7280;
   margin: 0;
+}
+
+.motor-health-page .health-title-section p {
+  font-size: 15px;
 }
 
 .health-visualization {
@@ -995,6 +1043,10 @@ body:has(.sidebar-collapsed) .home-logo-container {
   line-height: 1;
 }
 
+.motor-health-page .progress-value {
+  font-size: 44px;
+}
+
 .progress-label {
   font-size: 14px;
   color: #6b7280;
@@ -1002,11 +1054,20 @@ body:has(.sidebar-collapsed) .home-logo-container {
   margin-top: 4px;
 }
 
+.motor-health-page .progress-label {
+  font-size: 16px;
+  margin-top: 6px;
+}
+
 .health-details {
   display: flex;
   flex-direction: column;
   gap: 16px;
   width: 100%;
+}
+
+.motor-health-page .health-details {
+  gap: 20px;
 }
 
 .health-detail-item {
@@ -1018,16 +1079,29 @@ body:has(.sidebar-collapsed) .home-logo-container {
   border-radius: 10px;
 }
 
+.motor-health-page .health-detail-item {
+  padding: 16px 20px;
+  border-radius: 12px;
+}
+
 .health-detail-label {
   font-size: 13px;
   color: #6b7280;
   font-weight: 500;
 }
 
+.motor-health-page .health-detail-label {
+  font-size: 14px;
+}
+
 .health-detail-value {
   font-size: 14px;
   font-weight: 600;
   color: #111827;
+}
+
+.motor-health-page .health-detail-value {
+  font-size: 16px;
 }
 
 .health-metrics-grid {
@@ -1040,15 +1114,19 @@ body:has(.sidebar-collapsed) .home-logo-container {
 .health-metrics-grid-6 {
   grid-template-columns: repeat(3, 1fr);
   grid-auto-rows: 1fr;
-  gap: 20px;
+  gap: 24px;
+}
+
+.motor-health-page .health-metrics-grid-6 {
+  gap: 28px;
 }
 
 .motor-health-page .parameter-card-modern {
   background: #ffffff;
   border: 1px solid #e5e7eb;
-  border-radius: 20px;
-  padding: 28px;
-  min-height: 160px;
+  border-radius: 24px;
+  padding: 34px 36px;
+  min-height: 220px;
   transition: all 0.3s ease;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
   display: flex;
@@ -1079,14 +1157,14 @@ body:has(.sidebar-collapsed) .home-logo-container {
 }
 
 .motor-health-page .parameter-card-header {
-  margin-bottom: 20px;
+  margin-bottom: 24px;
 }
 
 .motor-health-page .parameter-icon {
-  width: 48px;
-  height: 48px;
-  font-size: 22px;
-  border-radius: 12px;
+  width: 56px;
+  height: 56px;
+  font-size: 26px;
+  border-radius: 14px;
 }
 
 .motor-health-page .parameter-card-body {
@@ -1094,19 +1172,19 @@ body:has(.sidebar-collapsed) .home-logo-container {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  gap: 10px;
+  gap: 12px;
 }
 
 .motor-health-page .parameter-value-large {
-  font-size: 32px;
+  font-size: 38px;
 }
 
 .motor-health-page .parameter-unit-large {
-  font-size: 18px;
+  font-size: 20px;
 }
 
 .motor-health-page .parameter-label-large {
-  font-size: 14px;
+  font-size: 15px;
 }
 
 .parameter-status-badge {

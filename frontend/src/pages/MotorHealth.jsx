@@ -104,17 +104,6 @@ const MotorHealth = () => {
     return 'normal'
   }
 
-  const getBarPercent = (value, highLevel, lowLevel) => {
-    if (value == null || Number.isNaN(value)) return 50
-    const hl = Number(highLevel)
-    const ll = Number(lowLevel)
-    if (hl != null && ll != null && !Number.isNaN(hl) && !Number.isNaN(ll) && hl > ll) {
-      const p = ((value - ll) / (hl - ll)) * 100
-      return Math.min(100, Math.max(0, p))
-    }
-    return 50
-  }
-
   const CircularProgress = ({ percentage, size = 180, strokeWidth = 12, color }) => {
     const radius = (size - strokeWidth) / 2
     const circumference = radius * 2 * Math.PI
@@ -209,6 +198,8 @@ const MotorHealth = () => {
             <div className="health-visualization">
               <CircularProgress 
                 percentage={displayPercent} 
+                size={220}
+                strokeWidth={14}
                 color={getHealthColor(overallPercent != null ? overallPercent : displayPercent)}
               />
               <div className="health-details">
@@ -277,48 +268,6 @@ const MotorHealth = () => {
                 trend="stable"
                 color={param.color}
               />
-            )
-          })}
-        </div>
-      </div>
-
-      <div className="detailed-parameters-section">
-        <h3 className="section-title">Detailed Parameters (Live)</h3>
-        <div className="parameters-grid">
-          {LIVE_PARAMS.map((param) => {
-            const data = liveParams[param.id]
-            const value = data?.currentValue
-            const displayValue = value != null && !Number.isNaN(value)
-              ? (Number(value) % 1 === 0 ? String(Number(value)) : Number(value).toFixed(2))
-              : '—'
-            const barPct = getBarPercent(value, data?.highLevel, data?.lowLevel)
-            const Icon = param.icon
-            const rangeText = data?.lowLevel != null && data?.highLevel != null
-              ? `Range: ${data.lowLevel} – ${data.highLevel} ${param.unit}`.trim()
-              : 'Live data'
-            return (
-              <div key={param.id} className="detailed-param-card">
-                <div className="param-header">
-                  <Icon className="param-icon" style={{ color: param.color }} />
-                  <span className="param-name">{param.label}</span>
-                </div>
-                <div className="param-value-display">
-                  <span className="param-value-main">{displayValue}</span>
-                  <span className="param-value-unit">{param.unit}</span>
-                </div>
-                <div className="param-bar">
-                  <div
-                    className="param-bar-fill"
-                    style={{
-                      width: `${barPct}%`,
-                      backgroundColor: getHealthColor(barPct)
-                    }}
-                  />
-                </div>
-                <div className="param-footer">
-                  <span className="param-status">{rangeText}</span>
-                </div>
-              </div>
             )
           })}
         </div>
