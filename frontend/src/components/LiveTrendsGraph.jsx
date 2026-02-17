@@ -45,8 +45,8 @@ const LiveTrendsGraph = ({ type }) => {
       defaultHL: 85,
       defaultLL: 35
     },
-    'current-consumption': {
-      title: 'Current Consumption',
+    'power-consumption': {
+      title: 'Power Consumption',
       color: '#10b981',
       defaultHL: 75,
       defaultLL: 25
@@ -56,6 +56,18 @@ const LiveTrendsGraph = ({ type }) => {
       color: '#f59e0b',
       defaultHL: 90,
       defaultLL: 40
+    },
+    speed: {
+      title: 'Speed',
+      color: '#8b5cf6',
+      defaultHL: 95,
+      defaultLL: 20
+    },
+    torque: {
+      title: 'Torque',
+      color: '#06b6d4',
+      defaultHL: 90,
+      defaultLL: 25
     }
   }
 

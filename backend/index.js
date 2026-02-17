@@ -71,9 +71,20 @@ function initializeDatabase() {
     CREATE INDEX IF NOT EXISTS idx_live_trends_parameter_timestamp 
     ON live_trends(parameter, timestamp DESC)
   `)
-  
+
+  // Migration: rename current-consumption to power-consumption in existing data
+  try {
+    const update = db.prepare(`UPDATE live_trends SET parameter = 'power-consumption' WHERE parameter = 'current-consumption'`)
+    const result = update.run()
+    if (result.changes > 0) {
+      console.log('Migrated live_trends: current-consumption -> power-consumption, rows updated:', result.changes)
+    }
+  } catch (e) {
+    console.warn('Migration current-consumption -> power-consumption:', e.message)
+  }
+
   // Default motors insertion removed - start with empty database
-  
+
   console.log('Database initialized successfully')
 }
 
@@ -237,6 +248,23 @@ app.delete('/api/motors/:id', (req, res) => {
 
 // Live Trends API Routes
 
+// Helper: get local timestamp string for SQLite
+function getLocalTimestamp() {
+  const now = new Date()
+  const year = now.getFullYear()
+  const month = String(now.getMonth() + 1).padStart(2, '0')
+  const day = String(now.getDate()).padStart(2, '0')
+  const hours = String(now.getHours()).padStart(2, '0')
+  const minutes = String(now.getMinutes()).padStart(2, '0')
+  const seconds = String(now.getSeconds()).padStart(2, '0')
+  return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`
+}
+
+const liveTrendInsert = db.prepare(`
+  INSERT INTO live_trends (parameter, high_level, low_level, current_value, timestamp)
+  VALUES (?, ?, ?, ?, ?)
+`)
+
 // Save live trend data
 app.post('/api/live-trends', (req, res) => {
   try {
@@ -247,28 +275,13 @@ app.post('/api/live-trends', (req, res) => {
     }
     
     // Validate parameter
-    const validParameters = ['vibration', 'temperature', 'current-consumption', 'belt-tension']
+    const validParameters = ['vibration', 'temperature', 'power-consumption', 'belt-tension', 'speed', 'torque']
     if (!validParameters.includes(parameter)) {
       return res.status(400).json({ error: `Invalid parameter. Must be one of: ${validParameters.join(', ')}` })
     }
     
-    // Get current system time in local timezone
-    const now = new Date()
-    // Format as SQLite datetime: YYYY-MM-DD HH:MM:SS in local timezone
-    const year = now.getFullYear()
-    const month = String(now.getMonth() + 1).padStart(2, '0')
-    const day = String(now.getDate()).padStart(2, '0')
-    const hours = String(now.getHours()).padStart(2, '0')
-    const minutes = String(now.getMinutes()).padStart(2, '0')
-    const seconds = String(now.getSeconds()).padStart(2, '0')
-    const localTimestamp = `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`
-    
-    const insert = db.prepare(`
-      INSERT INTO live_trends (parameter, high_level, low_level, current_value, timestamp)
-      VALUES (?, ?, ?, ?, ?)
-    `)
-    
-    const result = insert.run(parameter, highLevel, lowLevel, currentValue, localTimestamp)
+    const localTimestamp = getLocalTimestamp()
+    const result = liveTrendInsert.run(parameter, highLevel, lowLevel, currentValue, localTimestamp)
     
     res.status(201).json({
       id: result.lastInsertRowid,
@@ -276,7 +289,7 @@ app.post('/api/live-trends', (req, res) => {
       highLevel,
       lowLevel,
       currentValue,
-      timestamp: now.toISOString()
+      timestamp: new Date().toISOString()
     })
   } catch (error) {
     console.error('Error saving live trend:', error)
@@ -467,7 +480,7 @@ app.delete('/api/live-trends', (req, res) => {
     }
     
     // Validate parameter
-    const validParameters = ['vibration', 'temperature', 'current-consumption', 'belt-tension']
+    const validParameters = ['vibration', 'temperature', 'power-consumption', 'belt-tension', 'speed', 'torque']
     if (!validParameters.includes(parameter)) {
       return res.status(400).json({ error: `Invalid parameter. Must be one of: ${validParameters.join(', ')}` })
     }
@@ -489,6 +502,30 @@ app.delete('/api/live-trends', (req, res) => {
 const server = app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`)
   console.log(`Database file: ${dbPath}`)
+
+  // Simulate live trend data for all 6 parameters so Data Logs and Live Trends show every parameter
+  const PARAMETERS = ['vibration', 'temperature', 'power-consumption', 'belt-tension', 'speed', 'torque']
+  const SIM_CONFIG = {
+    vibration: { hl: 80, ll: 30, min: 25, max: 75 },
+    temperature: { hl: 85, ll: 35, min: 38, max: 82 },
+    'power-consumption': { hl: 75, ll: 25, min: 28, max: 72 },
+    'belt-tension': { hl: 90, ll: 40, min: 45, max: 85 },
+    speed: { hl: 95, ll: 20, min: 25, max: 90 },
+    torque: { hl: 90, ll: 25, min: 28, max: 85 }
+  }
+  const randBetween = (min, max) => min + Math.random() * (max - min)
+  setInterval(() => {
+    try {
+      const ts = getLocalTimestamp()
+      for (const param of PARAMETERS) {
+        const cfg = SIM_CONFIG[param]
+        const value = Math.round(randBetween(cfg.min, cfg.max) * 100) / 100
+        liveTrendInsert.run(param, cfg.hl, cfg.ll, value, ts)
+      }
+    } catch (e) {
+      console.error('Live trend simulator error:', e.message)
+    }
+  }, 5000)
 })
 
 // Handle server errors

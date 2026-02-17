@@ -7,7 +7,11 @@
     "dev:frontend": "cd frontend && npm run dev",
     "dev:backend": "cd backend && npm run dev",
     "dev:full": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
-    "build": "cd frontend && npm run build"
+    "build": "cd frontend && npm run build",
+    "report:docx": "node scripts/generate-report-docx.mjs"
+  },
+  "dependencies": {
+    "docx": "^9.5.0"
   },
   "devDependencies": {
     "concurrently": "^9.1.2"

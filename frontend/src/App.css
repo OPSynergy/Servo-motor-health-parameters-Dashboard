@@ -54,6 +54,18 @@ html, body, #root {
   pointer-events: none;
 }
 
+/* Alarms page: solid white background over entire area (covers 3D grid) */
+.main-content .alarms-page {
+  pointer-events: auto;
+  max-width: none !important;
+  width: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  box-sizing: border-box;
+}
+
 .main-content .home-logo-container,
 .main-content .home-logo-container-right,
 .main-content .home-header-center {

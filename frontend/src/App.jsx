@@ -27,10 +27,14 @@ function App() {
         return <LiveTrendsGraph type="vibration" />
       case 'temperature':
         return <LiveTrendsGraph type="temperature" />
-      case 'current-consumption':
-        return <LiveTrendsGraph type="current-consumption" />
+      case 'power-consumption':
+        return <LiveTrendsGraph type="power-consumption" />
       case 'belt-tension':
         return <LiveTrendsGraph type="belt-tension" />
+      case 'speed':
+        return <LiveTrendsGraph type="speed" />
+      case 'torque':
+        return <LiveTrendsGraph type="torque" />
       case 'data-logs':
         return <DataLogs />
       case 'missions':

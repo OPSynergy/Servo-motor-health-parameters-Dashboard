@@ -45,8 +45,10 @@ const Sidebar = ({ activePage, setActivePage, collapsed, setCollapsed }) => {
           subSubItems: [
             { id: 'vibration', label: 'Vibration' },
             { id: 'temperature', label: 'Temperature' },
-            { id: 'current-consumption', label: 'Current Consumption' },
-            { id: 'belt-tension', label: 'Belt Tension' }
+            { id: 'power-consumption', label: 'Power Consumption' },
+            { id: 'belt-tension', label: 'Belt Tension' },
+            { id: 'speed', label: 'Speed' },
+            { id: 'torque', label: 'Torque' }
           ]
         },
         { id: 'data-logs', label: 'Data Logs' }
