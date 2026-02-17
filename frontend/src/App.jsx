@@ -13,6 +13,7 @@ import './App.css'
 import MotorSetup from './pages/MotorSetup'
 import DataLogs from './pages/DataLogs'
 import HealthIndexing from './pages/HealthIndexing'
+import PredictiveData from './pages/PredictiveData'
 import NewAlarmsPopup from './components/NewAlarmsPopup'
 
 function App() {
@@ -57,6 +58,8 @@ function App() {
         return <MotorSetup />
       case 'health-indexing':
         return <HealthIndexing />
+      case 'predictive-data':
+        return <PredictiveData />
       default:
         return <Home />
     }

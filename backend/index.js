@@ -26,6 +26,10 @@ let mqttState = {
 }
 let lastFaultForAlarm = null
 
+// In-memory buffer for predictive_data topic (plant/line1/servo01/predictive_data)
+const PREDICTIVE_BUFFER_MAX = 500
+const predictiveDataBuffer = []
+
 // Middleware
 app.use(cors())
 app.use(express.json({ limit: '10mb' })) // Increased limit for image data
@@ -573,6 +577,18 @@ app.get('/api/alarms', (req, res) => {
   }
 })
 
+// Predictive data API (real-time from MQTT plant/line1/servo01/predictive_data)
+app.get('/api/predictive-data', (req, res) => {
+  try {
+    const limit = Math.min(parseInt(req.query.limit, 10) || PREDICTIVE_BUFFER_MAX, 1000)
+    const slice = predictiveDataBuffer.slice(-limit)
+    res.json(slice)
+  } catch (error) {
+    console.error('Error fetching predictive data:', error)
+    res.status(500).json({ error: 'Failed to fetch predictive data' })
+  }
+})
+
 // Health Indexing API (MHI + latest MQTT state)
 app.get('/api/health-index', (req, res) => {
   try {
@@ -655,6 +671,53 @@ const server = app.listen(PORT, () => {
   } catch (e) {
     console.warn('MQTT not started:', e.message)
     console.warn('Set MQTT_URL and optionally MQTT_TOPIC to connect to your ESP broker.')
+  }
+
+  // Predictive data: subscribe to 192.168.137.1, topic plant/line1/servo01/predictive_data
+  // Store all numeric fields in live_trends and in-memory buffer for graphs
+  const PREDICTIVE_MQTT_URL = process.env.PREDICTIVE_MQTT_URL || 'mqtt://192.168.137.1:1883'
+  const PREDICTIVE_MQTT_TOPIC = process.env.PREDICTIVE_MQTT_TOPIC || 'plant/line1/servo01/predictive_data'
+  const PREDICTIVE_PARAM_MAP = { unit_power: 'power-consumption', belt_tension: 'belt-tension' }
+  const PREDICTIVE_DEFAULT_HL = 100
+  const PREDICTIVE_DEFAULT_LL = 0
+  try {
+    const predClient = mqtt.connect(PREDICTIVE_MQTT_URL, { reconnectPeriod: 5000 })
+    predClient.on('connect', () => {
+      console.log(`Predictive MQTT connected to ${PREDICTIVE_MQTT_URL}`)
+      predClient.subscribe(PREDICTIVE_MQTT_TOPIC, (err) => {
+        if (err) console.error('Predictive MQTT subscribe error:', err)
+        else console.log(`Predictive MQTT subscribed to: ${PREDICTIVE_MQTT_TOPIC}`)
+      })
+    })
+    predClient.on('message', (topic, payload) => {
+      try {
+        const raw = payload.toString()
+        const data = typeof raw === 'string' && raw.trim().startsWith('{') ? JSON.parse(raw) : { value: parseFloat(raw) || 0 }
+        const ts = getLocalTimestamp()
+        const iso = new Date().toISOString()
+        predictiveDataBuffer.push({ timestamp: ts, iso, ...data })
+        if (predictiveDataBuffer.length > PREDICTIVE_BUFFER_MAX) predictiveDataBuffer.shift()
+
+        // Store every numeric field in live_trends (motor.db)
+        const skipKeys = new Set(['timestamp', 'iso'])
+        for (const [key, val] of Object.entries(data)) {
+          if (skipKeys.has(key)) continue
+          let num = typeof val === 'number' ? val : parseFloat(val)
+          if (Number.isNaN(num)) continue
+          num = Math.round(num * 100) / 100
+          const param = PREDICTIVE_PARAM_MAP[key] || key.replace(/_/g, '-')
+          const cfg = MQTT_PARAM_CONFIG[param]
+          const hl = cfg ? cfg.hl : PREDICTIVE_DEFAULT_HL
+          const ll = cfg ? cfg.ll : PREDICTIVE_DEFAULT_LL
+          liveTrendInsert.run(param, hl, ll, num, ts)
+        }
+      } catch (e) {
+        console.error('Predictive MQTT parse error:', e.message)
+      }
+    })
+    predClient.on('error', (err) => console.error('Predictive MQTT error:', err.message))
+  } catch (e) {
+    console.warn('Predictive MQTT not started:', e.message)
   }
 })
 
