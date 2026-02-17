@@ -1,6 +1,7 @@
 import express from 'express'
 import cors from 'cors'
 import Database from 'better-sqlite3'
+import mqtt from 'mqtt'
 import path from 'path'
 import { fileURLToPath } from 'url'
 import fs from 'fs'
@@ -10,6 +11,20 @@ const __dirname = path.dirname(__filename)
 
 const app = express()
 const PORT = 3001
+
+// In-memory state for MQTT payload (Health Indexing MHI + fault, etc.)
+let mqttState = {
+  mhi: null,
+  fault: null,
+  torque: null,
+  speed: null,
+  unit_power: null,
+  vibration: null,
+  temperature: null,
+  belt_tension: null,
+  updatedAt: null
+}
+let lastFaultForAlarm = null
 
 // Middleware
 app.use(cors())
@@ -280,6 +295,21 @@ const liveTrendInsert = db.prepare(`
   VALUES (?, ?, ?, ?, ?)
 `)
 
+const alarmInsert = db.prepare(`
+  INSERT INTO alarms (type, message, status, created_at)
+  VALUES (?, ?, ?, ?)
+`)
+
+// Default HL/LL for Live Trends when inserting from MQTT (same as frontend defaults)
+const MQTT_PARAM_CONFIG = {
+  vibration: { hl: 80, ll: 30 },
+  temperature: { hl: 85, ll: 35 },
+  'power-consumption': { hl: 75, ll: 25 },
+  'belt-tension': { hl: 90, ll: 40 },
+  speed: { hl: 95, ll: 20 },
+  torque: { hl: 90, ll: 25 }
+}
+
 // Save live trend data
 app.post('/api/live-trends', (req, res) => {
   try {
@@ -543,34 +573,89 @@ app.get('/api/alarms', (req, res) => {
   }
 })
 
+// Health Indexing API (MHI + latest MQTT state)
+app.get('/api/health-index', (req, res) => {
+  try {
+    res.json({
+      mhi: mqttState.mhi,
+      fault: mqttState.fault,
+      updatedAt: mqttState.updatedAt,
+      torque: mqttState.torque,
+      speed: mqttState.speed,
+      unit_power: mqttState.unit_power,
+      vibration: mqttState.vibration,
+      temperature: mqttState.temperature,
+      belt_tension: mqttState.belt_tension
+    })
+  } catch (error) {
+    console.error('Error fetching health index:', error)
+    res.status(500).json({ error: 'Failed to fetch health index' })
+  }
+})
+
 // Start server
 const server = app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`)
   console.log(`Database file: ${dbPath}`)
 
-  // Simulate live trend data for all 6 parameters so Data Logs and Live Trends show every parameter
-  const PARAMETERS = ['vibration', 'temperature', 'power-consumption', 'belt-tension', 'speed', 'torque']
-  const SIM_CONFIG = {
-    vibration: { hl: 80, ll: 30, min: 25, max: 75 },
-    temperature: { hl: 85, ll: 35, min: 38, max: 82 },
-    'power-consumption': { hl: 75, ll: 25, min: 28, max: 72 },
-    'belt-tension': { hl: 90, ll: 40, min: 45, max: 85 },
-    speed: { hl: 95, ll: 20, min: 25, max: 90 },
-    torque: { hl: 90, ll: 25, min: 28, max: 85 }
-  }
-  const randBetween = (min, max) => min + Math.random() * (max - min)
-  setInterval(() => {
-    try {
-      const ts = getLocalTimestamp()
-      for (const param of PARAMETERS) {
-        const cfg = SIM_CONFIG[param]
-        const value = Math.round(randBetween(cfg.min, cfg.max) * 100) / 100
-        liveTrendInsert.run(param, cfg.hl, cfg.ll, value, ts)
+  const MQTT_URL = process.env.MQTT_URL || 'mqtt://localhost:1883'
+  const MQTT_TOPIC = process.env.MQTT_TOPIC || 'esp/live'
+
+  try {
+    const client = mqtt.connect(MQTT_URL, { reconnectPeriod: 5000 })
+    client.on('connect', () => {
+      console.log(`MQTT connected to ${MQTT_URL}`)
+      client.subscribe(MQTT_TOPIC, (err) => {
+        if (err) console.error('MQTT subscribe error:', err)
+        else console.log(`MQTT subscribed to topic: ${MQTT_TOPIC}`)
+      })
+    })
+    client.on('message', (topic, payload) => {
+      try {
+        const raw = payload.toString()
+        const data = JSON.parse(raw)
+        const ts = getLocalTimestamp()
+
+        mqttState.mhi = data.MHI != null ? Number(data.MHI) : mqttState.mhi
+        mqttState.fault = data.fault != null ? String(data.fault) : mqttState.fault
+        mqttState.torque = data.torque != null ? Number(data.torque) : mqttState.torque
+        mqttState.speed = data.speed != null ? Number(data.speed) : mqttState.speed
+        mqttState.unit_power = data.unit_power != null ? Number(data.unit_power) : mqttState.unit_power
+        mqttState.vibration = data.vibration != null ? Number(data.vibration) : mqttState.vibration
+        mqttState.temperature = data.temperature != null ? Number(data.temperature) : mqttState.temperature
+        mqttState.belt_tension = data.belt_tension != null ? Number(data.belt_tension) : mqttState.belt_tension
+        mqttState.updatedAt = ts
+
+        const paramMap = [
+          ['vibration', data.vibration],
+          ['temperature', data.temperature],
+          ['power-consumption', data.unit_power],
+          ['belt-tension', data.belt_tension],
+          ['speed', data.speed],
+          ['torque', data.torque]
+        ]
+        for (const [param, value] of paramMap) {
+          if (value == null || typeof value !== 'number') continue
+          const cfg = MQTT_PARAM_CONFIG[param]
+          if (cfg) {
+            const v = Math.round(Number(value) * 100) / 100
+            liveTrendInsert.run(param, cfg.hl, cfg.ll, v, ts)
+          }
+        }
+
+        if (data.fault != null && String(data.fault).trim() !== '' && data.fault !== lastFaultForAlarm) {
+          lastFaultForAlarm = String(data.fault)
+          alarmInsert.run('Critical', lastFaultForAlarm, 'active', ts)
+        }
+      } catch (e) {
+        console.error('MQTT message parse error:', e.message)
       }
-    } catch (e) {
-      console.error('Live trend simulator error:', e.message)
-    }
-  }, 5000)
+    })
+    client.on('error', (err) => console.error('MQTT error:', err.message))
+  } catch (e) {
+    console.warn('MQTT not started:', e.message)
+    console.warn('Set MQTT_URL and optionally MQTT_TOPIC to connect to your ESP broker.')
+  }
 })
 
 // Handle server errors

@@ -1,3 +1,4 @@
+import { useCallback } from 'react'
 import { Canvas } from '@react-three/fiber'
 import { OrbitControls, useGLTF, Grid } from '@react-three/drei'
 import { Suspense } from 'react'
@@ -15,6 +16,10 @@ function Model() {
 }
 
 export default function Hero3D() {
+  const setControlsRef = useCallback((ctrl) => {
+    if (ctrl) ctrl.zoomToCursor = true
+  }, [])
+
   return (
     <div
       className="hero-3d-container"
@@ -87,10 +92,14 @@ export default function Hero3D() {
           <Model />
           
           <OrbitControls 
+            ref={setControlsRef}
             target={[0, -1.5, 0]}
             enableZoom={true}
             enablePan={true}
             enableRotate={true}
+            enableDamping
+            dampingFactor={0.08}
+            zoomSpeed={0.8}
           />
         </Suspense>
       </Canvas>

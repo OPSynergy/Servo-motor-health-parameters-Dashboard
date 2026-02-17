@@ -12,6 +12,7 @@ import Hero3D from './Hero3D'
 import './App.css'
 import MotorSetup from './pages/MotorSetup'
 import DataLogs from './pages/DataLogs'
+import HealthIndexing from './pages/HealthIndexing'
 import NewAlarmsPopup from './components/NewAlarmsPopup'
 
 function App() {
@@ -54,6 +55,8 @@ function App() {
         return <Settings />
       case 'motor-setup':
         return <MotorSetup />
+      case 'health-indexing':
+        return <HealthIndexing />
       default:
         return <Home />
     }

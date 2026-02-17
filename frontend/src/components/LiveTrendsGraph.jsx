@@ -17,7 +17,7 @@ import { saveLiveTrend, getHistoricalTrends, deleteAllTrendsForParameter } from 
 import './LiveTrendsGraph.css'
 
 ChartJS.register(
-  CategoryScale,
+  CategoryScale, 
   LinearScale,
   PointElement,
   LineElement,
@@ -146,60 +146,37 @@ const LiveTrendsGraph = ({ type }) => {
     localStorage.setItem(`levels-${type}`, JSON.stringify(levels))
   }, [levels, type])
 
-  const mid = (levels.HL + levels.LL) / 2
-  const amplitude = (levels.HL - levels.LL) / 3
-
-  // Generate sample data (only when no time option is selected)
+  // Live data from MQTT (via API) – poll when in live mode (no time option, no time window)
+  const [liveApiData, setLiveApiData] = useState([])
   useEffect(() => {
-    if (selectedTimeOption) {
-      // Don't generate live data when viewing historical data
+    if (selectedTimeOption || startTime || endTime) return
+    const fetchLive = async () => {
+      try {
+        const result = await getHistoricalTrends(type, 15)
+        setLiveApiData(Array.isArray(result) ? result : [])
+      } catch {
+        setLiveApiData([])
+      }
+    }
+    fetchLive()
+    const interval = setInterval(fetchLive, 4000)
+    return () => clearInterval(interval)
+  }, [type, selectedTimeOption, startTime, endTime])
+
+  // Derive data array from live API for backwards compatibility (current value, etc.)
+  useEffect(() => {
+    if (selectedTimeOption || startTime || endTime) return
+    if (liveApiData.length === 0) {
+      setData([])
       return
     }
-    
-    const generateData = () => {
-      const points = 50
-      const newData = []
-
-      for (let i = 0; i < points; i++) {
-        const noise = (Math.random() - 0.5) * amplitude
-        const trend = Math.sin(i / 8) * amplitude * 0.5
-        newData.push(mid + trend + noise)
-      }
-      setData(newData)
-      // Immediately update graph data for live mode
-      if (!selectedTimeOption) {
-        setGraphData(newData)
-        setGraphLabels(Array.from({ length: newData.length }, (_, i) => i))
-      }
-    }
-
-    // Generate initial data immediately
-    generateData()
-    const interval = setInterval(generateData, 3000)
-    return () => clearInterval(interval)
-  }, [mid, amplitude, selectedTimeOption]) // Use mid and amplitude instead of levels
-
-  // Save current value to database periodically (only when not viewing historical data)
-  useEffect(() => {
-    if (selectedTimeOption || data.length === 0) return
-    
-    const currentValue = data[data.length - 1]
-    
-    const saveData = async () => {
-      try {
-        await saveLiveTrend(type, levels.HL, levels.LL, currentValue)
-      } catch (error) {
-        // Silently fail - don't interrupt the UI
-        console.error('Failed to save live trend data:', error)
-      }
-    }
-    
-    // Save immediately and then every 3 seconds
-    saveData()
-    const saveInterval = setInterval(saveData, 3000)
-    
-    return () => clearInterval(saveInterval)
-  }, [data, levels, type, selectedTimeOption])
+    const values = liveApiData.map((item) => {
+      let v = item.currentValue !== undefined ? item.currentValue : item.current_value
+      if (typeof v === 'string') v = parseFloat(v)
+      return typeof v === 'number' && !isNaN(v) ? v : 0
+    })
+    setData(values)
+  }, [liveApiData, selectedTimeOption, startTime, endTime])
 
   // Update graph data based on selected time option or live data, with optional time window filtering
   useEffect(() => {
@@ -231,12 +208,33 @@ const LiveTrendsGraph = ({ type }) => {
         return
       }
     } else {
-      // When no time option is selected and no time window, use live data
-      if (data.length > 0) {
-        setGraphData(data)
-        setGraphLabels(Array.from({ length: data.length }, (_, i) => `Sample ${i + 1}`))
+      // When no time option is selected and no time window, use live data from MQTT (API)
+      if (liveApiData.length > 0) {
+        const sorted = [...liveApiData].sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
+        const sortedValues = []
+        const labels = []
+        sorted.forEach((item) => {
+          let value = item.currentValue !== undefined ? item.currentValue : item.current_value
+          if (typeof value === 'string') value = parseFloat(value)
+          if (typeof value === 'number' && !isNaN(value)) {
+            sortedValues.push(value)
+            const date = new Date(item.timestamp)
+            labels.push(`${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}:${String(date.getSeconds()).padStart(2, '0')}`)
+          }
+        })
+        const minLen = Math.min(sortedValues.length, labels.length)
+        if (minLen > 0) {
+          setGraphData(sortedValues.slice(0, minLen))
+          setGraphLabels(labels.slice(0, minLen))
+        } else {
+          setGraphData([])
+          setGraphLabels([])
+        }
         return
       }
+      setGraphData([])
+      setGraphLabels([])
+      return
     }
     
     // Filter by time window if startTime or endTime is set
@@ -329,7 +327,7 @@ const LiveTrendsGraph = ({ type }) => {
       setGraphLabels([])
     }
     // If useHistorical is false, live data will be handled in the else block above
-  }, [selectedTimeOption, historicalData, data, loadingHistorical, startTime, endTime])
+  }, [selectedTimeOption, historicalData, data, liveApiData, loadingHistorical, startTime, endTime])
 
   // Fetch all historical data when time window is set but no time option is selected
   useEffect(() => {
