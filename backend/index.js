@@ -26,6 +26,9 @@ let mqttState = {
 }
 let lastFaultForAlarm = null
 
+// Current "Set MHI Value" (1-100) for motor_health table; updated by frontend or default 85
+let setMhiValueBackend = 85
+
 // In-memory buffer for predictive_data topic (plant/line1/servo01/predictive_data)
 const PREDICTIVE_BUFFER_MAX = 500
 const predictiveDataBuffer = []
@@ -105,6 +108,27 @@ function initializeDatabase() {
     CREATE INDEX IF NOT EXISTS idx_alarms_status_created
     ON alarms(status, created_at DESC)
   `)
+
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS motor_health (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      set_mhi_value REAL NOT NULL,
+      current_mhi_value REAL NOT NULL,
+      timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+      date TEXT DEFAULT (date('now'))
+    )
+  `)
+  db.exec(`
+    CREATE INDEX IF NOT EXISTS idx_motor_health_timestamp
+    ON motor_health(timestamp DESC)
+  `)
+
+  try {
+    db.exec(`ALTER TABLE motor_health ADD COLUMN status TEXT`)
+    console.log('motor_health: added column status')
+  } catch (e) {
+    // Column already exists
+  }
 
   // Migration: rename current-consumption to power-consumption in existing data
   try {
@@ -294,6 +318,14 @@ function getLocalTimestamp() {
   return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`
 }
 
+function getLocalDate() {
+  const now = new Date()
+  const year = now.getFullYear()
+  const month = String(now.getMonth() + 1).padStart(2, '0')
+  const day = String(now.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
 const liveTrendInsert = db.prepare(`
   INSERT INTO live_trends (parameter, high_level, low_level, current_value, timestamp)
   VALUES (?, ?, ?, ?, ?)
@@ -302,6 +334,11 @@ const liveTrendInsert = db.prepare(`
 const alarmInsert = db.prepare(`
   INSERT INTO alarms (type, message, status, created_at)
   VALUES (?, ?, ?, ?)
+`)
+
+const motorHealthInsert = db.prepare(`
+  INSERT INTO motor_health (set_mhi_value, current_mhi_value, timestamp, date, status)
+  VALUES (?, ?, ?, ?, ?)
 `)
 
 // Default HL/LL for Live Trends when inserting from MQTT (same as frontend defaults)
@@ -613,10 +650,39 @@ app.get('/api/health-index', (req, res) => {
   }
 })
 
+// Motor health: get/update set MHI value (1-100) for motor_health table logging
+app.get('/api/motor-health/set-value', (req, res) => {
+  res.json({ setMhiValue: setMhiValueBackend })
+})
+app.put('/api/motor-health/set-value', express.json(), (req, res) => {
+  const v = req.body?.setMhiValue != null ? Number(req.body.setMhiValue) : NaN
+  if (!Number.isNaN(v) && v >= 1 && v <= 100) {
+    setMhiValueBackend = v
+    res.json({ setMhiValue: setMhiValueBackend })
+  } else {
+    res.status(400).json({ error: 'setMhiValue must be a number between 1 and 100' })
+  }
+})
+
 // Start server
 const server = app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`)
   console.log(`Database file: ${dbPath}`)
+
+  // Log motor_health every second (uses current setMhiValueBackend + mqttState.mhi so UI "Set MHI Value" is reflected)
+  setInterval(() => {
+    try {
+      const currentMhi = mqttState.mhi != null ? Number(mqttState.mhi) : 0
+      const ts = getLocalTimestamp()
+      const date = getLocalDate()
+      const currentPercent = currentMhi * 100
+      const status = currentPercent >= setMhiValueBackend ? 'good' : currentPercent >= setMhiValueBackend * 0.7 ? 'warning' : 'critical'
+      motorHealthInsert.run(setMhiValueBackend, currentMhi, ts, date, status)
+    } catch (e) {
+      console.error('motor_health insert error:', e.message)
+    }
+  }, 1000)
+  console.log('motor_health: logging every 1s')
 
   const MQTT_URL = process.env.MQTT_URL || 'mqtt://localhost:1883'
   const MQTT_TOPIC = process.env.MQTT_TOPIC || 'esp/live'

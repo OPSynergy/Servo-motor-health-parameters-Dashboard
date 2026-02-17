@@ -31,10 +31,10 @@ const getInitialMhiSetValue = () => {
     const saved = localStorage.getItem(MHI_SET_VALUE_KEY)
     if (saved != null) {
       const v = parseFloat(saved)
-      if (!Number.isNaN(v) && v >= 0 && v <= 1) return v
+      if (!Number.isNaN(v) && v >= 1 && v <= 100) return v
     }
   } catch (e) {}
-  return 0.85
+  return 85
 }
 
 const MotorHealth = () => {
@@ -98,13 +98,29 @@ const MotorHealth = () => {
     localStorage.setItem(MHI_SET_VALUE_KEY, String(mhiSetValue))
   }, [mhiSetValue])
 
+  // Sync Set MHI Value to backend on load and when it changes so motor_health rows use it
+  useEffect(() => {
+    const v = Number(mhiSetValue)
+    if (Number.isNaN(v) || v < 1 || v > 100) return
+    fetch('http://localhost:3001/api/motor-health/set-value', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ setMhiValue: v })
+    }).catch(() => {})
+  }, [mhiSetValue])
+
   const handleSetMhiValue = () => {
     const value = parseFloat(tempMhiSetValue)
-    if (!Number.isNaN(value) && value >= 0 && value <= 1) {
+    if (!Number.isNaN(value) && value >= 1 && value <= 100) {
       setMhiSetValue(value)
       setIsEditingMhiValue(false)
+      fetch('http://localhost:3001/api/motor-health/set-value', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ setMhiValue: value })
+      }).catch(() => {})
     } else {
-      alert('MHI value must be between 0 and 1')
+      alert('MHI value must be between 1 and 100')
       setTempMhiSetValue(mhiSetValue)
     }
   }
@@ -120,11 +136,13 @@ const MotorHealth = () => {
     return '#ef4444'
   }
 
-  // MHI color from user-set MHI value (threshold: above = green, below = amber/red)
+  // MHI color from user-set MHI value (1-100). Live MHI from API is 0-1.
   const getMhiColorFromSetValue = (mhi) => {
     if (mhi == null || Number.isNaN(mhi)) return '#6b7280'
-    if (mhi >= mhiSetValue) return '#10b981'
-    if (mhi >= mhiSetValue * 0.7) return '#f59e0b'
+    const mhiPercent = mhi * 100
+    const threshold = mhiSetValue
+    if (mhiPercent >= threshold) return '#10b981'
+    if (mhiPercent >= threshold * 0.7) return '#f59e0b'
     return '#ef4444'
   }
 
@@ -300,9 +318,9 @@ const MotorHealth = () => {
                       <input
                         type="number"
                         className="mhi-level-input"
-                        min="0"
-                        max="1"
-                        step="0.01"
+                        min="1"
+                        max="100"
+                        step="1"
                         value={tempMhiSetValue}
                         onChange={(e) => setTempMhiSetValue(e.target.value)}
                         onKeyDown={(e) => e.key === 'Enter' && handleSetMhiValue()}
@@ -318,7 +336,7 @@ const MotorHealth = () => {
                       </button>
                     </>
                   ) : (
-                    <span className="mhi-level-value">{mhiSetValue.toFixed(2)}</span>
+                    <span className="mhi-level-value">{Number(mhiSetValue) % 1 === 0 ? mhiSetValue : mhiSetValue.toFixed(1)}</span>
                   )}
                 </div>
                 {!isEditingMhiValue && (
