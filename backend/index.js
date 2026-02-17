@@ -488,11 +488,11 @@ app.get('/api/live-trends/historical', (req, res) => {
     }
     
     // Order by timestamp DESC to get the most recent data first
-    // For 8hrs, show all data, for others limit to 100
+    // For 8hrs, show all data; for others limit to 500 so live graph has enough points
     if (minutes === 480) {
       query += ' ORDER BY timestamp DESC'
     } else {
-      query += ' ORDER BY timestamp DESC LIMIT 100'
+      query += ' ORDER BY timestamp DESC LIMIT 500'
     }
     
     const data = db.prepare(query).all(...params)
@@ -590,10 +590,13 @@ app.get('/api/predictive-data', (req, res) => {
 })
 
 // Health Indexing API (MHI + latest MQTT state)
+// When MQTT has not sent MHI yet, return a fallback so the dashboard can display a value until real data arrives
 app.get('/api/health-index', (req, res) => {
   try {
+    const mhiFallback = process.env.MHI_DEFAULT != null ? parseFloat(process.env.MHI_DEFAULT) : 0.85
+    const mhi = mqttState.mhi != null ? mqttState.mhi : mhiFallback
     res.json({
-      mhi: mqttState.mhi,
+      mhi,
       fault: mqttState.fault,
       updatedAt: mqttState.updatedAt,
       torque: mqttState.torque,
@@ -601,7 +604,8 @@ app.get('/api/health-index', (req, res) => {
       unit_power: mqttState.unit_power,
       vibration: mqttState.vibration,
       temperature: mqttState.temperature,
-      belt_tension: mqttState.belt_tension
+      belt_tension: mqttState.belt_tension,
+      isFallback: mqttState.mhi == null
     })
   } catch (error) {
     console.error('Error fetching health index:', error)
@@ -632,7 +636,8 @@ const server = app.listen(PORT, () => {
         const data = JSON.parse(raw)
         const ts = getLocalTimestamp()
 
-        mqttState.mhi = data.MHI != null ? Number(data.MHI) : mqttState.mhi
+        const mhiRaw = data.MHI ?? data.mhi
+        mqttState.mhi = mhiRaw != null ? Number(mhiRaw) : mqttState.mhi
         mqttState.fault = data.fault != null ? String(data.fault) : mqttState.fault
         mqttState.torque = data.torque != null ? Number(data.torque) : mqttState.torque
         mqttState.speed = data.speed != null ? Number(data.speed) : mqttState.speed

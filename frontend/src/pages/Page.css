@@ -413,6 +413,7 @@ body:has(.sidebar-collapsed) .home-logo-container {
   border-bottom: 1px solid #e5e7eb;
 }
 
+
 .page-subtitle {
   font-size: 14px;
   color: #6b7280;
@@ -844,6 +845,21 @@ body:has(.sidebar-collapsed) .home-logo-container {
 }
 
 /* Motor Health Page Styles */
+.motor-health-page .dashboard-header {
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 28px;
+  padding-bottom: 20px;
+  border-bottom-color: #e5e7eb;
+}
+
+.motor-health-page .page-title {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: #111827;
+  margin: 0;
+}
+
 .health-overview-section {
   display: grid;
   grid-template-columns: 1fr 2fr;
@@ -851,12 +867,58 @@ body:has(.sidebar-collapsed) .home-logo-container {
   margin-bottom: 32px;
 }
 
+.health-overview-left {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.mhi-value-card {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  padding: 20px 24px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+.mhi-value-card-header {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.mhi-value-card-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.mhi-value-card-value {
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.mhi-value-card-updated {
+  font-size: 12px;
+  color: #9ca3af;
+  margin: 12px 0 0 0;
+}
+
+.mhi-value-card-error {
+  font-size: 13px;
+  color: #dc2626;
+  margin: 0 0 12px 0;
+}
+
 .health-main-card {
-  background: linear-gradient(135deg, #ffffff 0%, #f9fafb 100%);
+  background: #ffffff;
   border: 1px solid #e5e7eb;
   border-radius: 20px;
   padding: 32px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
 }
 
 .health-header {
@@ -963,17 +1025,23 @@ body:has(.sidebar-collapsed) .home-logo-container {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 16px;
+  align-content: start;
 }
 
-.parameter-card-modern {
+.motor-health-page .parameters-grid {
+  gap: 24px;
+}
+
+.motor-health-page .parameter-card-modern {
   background: #ffffff;
   border: 1px solid #e5e7eb;
   border-radius: 16px;
   padding: 20px;
   transition: all 0.3s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
-.parameter-card-modern:hover {
+.motor-health-page .parameter-card-modern:hover {
   box-shadow: 0 8px 16px rgba(0, 0, 0, 0.08);
   transform: translateY(-2px);
   border-color: #d1d5db;
@@ -1065,15 +1133,16 @@ body:has(.sidebar-collapsed) .home-logo-container {
   text-transform: capitalize;
 }
 
-.detailed-parameters-section {
-  margin-top: 32px;
+.motor-health-page .detailed-parameters-section {
+  margin-top: 40px;
+  padding-top: 0;
 }
 
-.section-title {
-  font-size: 20px;
+.motor-health-page .section-title {
+  font-size: 1.25rem;
   font-weight: 700;
   color: #111827;
-  margin-bottom: 20px;
+  margin: 0 0 20px 0;
 }
 
 .parameters-grid {
@@ -1082,15 +1151,16 @@ body:has(.sidebar-collapsed) .home-logo-container {
   gap: 20px;
 }
 
-.detailed-param-card {
+.motor-health-page .detailed-param-card {
   background: #ffffff;
   border: 1px solid #e5e7eb;
   border-radius: 16px;
   padding: 24px;
   transition: all 0.3s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
-.detailed-param-card:hover {
+.motor-health-page .detailed-param-card:hover {
   box-shadow: 0 8px 16px rgba(0, 0, 0, 0.08);
   border-color: #d1d5db;
 }

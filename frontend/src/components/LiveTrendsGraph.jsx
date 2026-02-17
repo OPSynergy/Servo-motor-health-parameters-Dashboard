@@ -13,7 +13,7 @@ import {
   Filler
 } from 'chart.js'
 import zoomPlugin from 'chartjs-plugin-zoom'
-import { saveLiveTrend, getHistoricalTrends, deleteAllTrendsForParameter } from '../services/liveTrendsApi'
+import { saveLiveTrend, getHistoricalTrends, getLiveTrends, deleteAllTrendsForParameter } from '../services/liveTrendsApi'
 import './LiveTrendsGraph.css'
 
 ChartJS.register(
@@ -146,20 +146,20 @@ const LiveTrendsGraph = ({ type }) => {
     localStorage.setItem(`levels-${type}`, JSON.stringify(levels))
   }, [levels, type])
 
-  // Live data from MQTT (via API) – poll when in live mode (no time option, no time window)
+  // Live data from live_trends (same as Data Logs) – poll when in live mode (no time option, no time window)
   const [liveApiData, setLiveApiData] = useState([])
   useEffect(() => {
     if (selectedTimeOption || startTime || endTime) return
     const fetchLive = async () => {
       try {
-        const result = await getHistoricalTrends(type, 15)
+        const result = await getLiveTrends(type, 500)
         setLiveApiData(Array.isArray(result) ? result : [])
       } catch {
         setLiveApiData([])
       }
     }
     fetchLive()
-    const interval = setInterval(fetchLive, 4000)
+    const interval = setInterval(fetchLive, 2000)
     return () => clearInterval(interval)
   }, [type, selectedTimeOption, startTime, endTime])
 
@@ -370,7 +370,7 @@ const LiveTrendsGraph = ({ type }) => {
       
       // Save to database when HL changes
       if (data.length > 0) {
-        const currentValue = data[data.length - 1]
+        const currentValue = data[0]
         try {
           await saveLiveTrend(type, value, levels.LL, currentValue)
         } catch (error) {
@@ -391,7 +391,7 @@ const LiveTrendsGraph = ({ type }) => {
       
       // Save to database when LL changes
       if (data.length > 0) {
-        const currentValue = data[data.length - 1]
+        const currentValue = data[0]
         try {
           await saveLiveTrend(type, levels.HL, value, currentValue)
         } catch (error) {
@@ -431,7 +431,7 @@ const LiveTrendsGraph = ({ type }) => {
   // Calculate dynamic Y-axis range based on data values
   const yAxisRange = useMemo(() => {
     if (finalData.length === 0) {
-      return { min: 0, max: 100 }
+      return { min: 0, max: 50 }
     }
 
     // Include HL and LL in the range calculation
@@ -445,7 +445,7 @@ const LiveTrendsGraph = ({ type }) => {
     // If range is 0 (all values are the same), create a range around that value
     if (range === 0) {
       const center = overallMin
-      return { min: Math.max(0, center - 10), max: center + 10 }
+      return { min: Math.max(0, center - 10), max: Math.min(center + 10, 50) }
     }
     
     // Add 15% padding above and below
@@ -498,6 +498,7 @@ const LiveTrendsGraph = ({ type }) => {
       max = center + minRange / 2
     }
     
+    max = Math.min(max, 50)
     return { min, max }
   }, [finalData, levels.HL, levels.LL])
 
@@ -670,7 +671,7 @@ const LiveTrendsGraph = ({ type }) => {
     }
   }), [yAxisRange, selectedTimeOption, currentConfig])
 
-  const currentValue = data[data.length - 1] || 0
+  const currentValue = data.length > 0 ? data[0] : 0
   const status = currentValue > levels.HL ? 'critical' : 
                  currentValue < levels.LL ? 'warning' : 'normal'
 
@@ -910,7 +911,7 @@ const LiveTrendsGraph = ({ type }) => {
               ? 'Loading historical data...' 
               : (selectedTimeOption || (startTime || endTime))
                 ? 'No data available for the selected time period' 
-                : 'Generating live data...'}
+                : 'Waiting for data… Plot shows the same data as Data Logs (updates every 2 s).'}
           </div>
         )}
       </div>
