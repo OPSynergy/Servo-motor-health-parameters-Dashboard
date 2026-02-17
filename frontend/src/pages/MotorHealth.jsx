@@ -7,22 +7,27 @@ import {
   FaCheckCircle,
   FaExclamationTriangle,
   FaShieldAlt,
-  FaCog
+  FaCog,
+  FaLink
 } from 'react-icons/fa'
 import { getHealthIndex } from '../services/healthIndexApi'
+import { getLatestTrends } from '../services/liveTrendsApi'
 import './Page.css'
+
+// Same 6 parameters as Live Trends: vibration, temperature, power-consumption, belt-tension, speed, torque
+const LIVE_PARAMS = [
+  { id: 'vibration', label: 'Vibration', unit: 'mm/s', icon: FaTachometerAlt, color: '#3b82f6' },
+  { id: 'temperature', label: 'Temperature', unit: '°C', icon: FaTemperatureHigh, color: '#ef4444' },
+  { id: 'power-consumption', label: 'Power Consumption', unit: 'W', icon: FaBolt, color: '#10b981' },
+  { id: 'belt-tension', label: 'Belt Tension', unit: '', icon: FaLink, color: '#f59e0b' },
+  { id: 'speed', label: 'Speed', unit: 'RPM', icon: FaTachometerAlt, color: '#8b5cf6' },
+  { id: 'torque', label: 'Torque', unit: 'Nm', icon: FaCog, color: '#06b6d4' }
+]
 
 const MotorHealth = () => {
   const [mhiData, setMhiData] = useState({ mhi: null, updatedAt: null, isFallback: false })
   const [mhiError, setMhiError] = useState(null)
-  const [healthData, setHealthData] = useState({
-    temperature: { value: 45.2, status: 'normal', trend: 'stable' },
-    vibration: { value: 2.3, status: 'normal', trend: 'improving' },
-    current: { value: 2.48, status: 'normal', trend: 'stable' },
-    voltage: { value: 230.5, status: 'normal', trend: 'stable' },
-    speed: { value: 1520, status: 'normal', trend: 'stable' },
-    efficiency: { value: 94.2, status: 'excellent', trend: 'improving' }
-  })
+  const [liveParams, setLiveParams] = useState({}) // { [paramId]: { currentValue, highLevel, lowLevel, timestamp } }
 
   // Real-time MHI from health-index API (same source as MQTT)
   useEffect(() => {
@@ -45,20 +50,27 @@ const MotorHealth = () => {
     return () => clearInterval(interval)
   }, [])
 
+  // Live data for the 6 parameters (same source as Live Trends)
   useEffect(() => {
-    const interval = setInterval(() => {
-      setHealthData(prev => ({
-        ...prev,
-        temperature: {
-          ...prev.temperature,
-          value: prev.temperature.value + (Math.random() - 0.5) * 0.3
-        },
-        vibration: {
-          ...prev.vibration,
-          value: Math.max(0, prev.vibration.value + (Math.random() - 0.5) * 0.1)
-        }
-      }))
-    }, 3000)
+    const fetchLatest = async () => {
+      try {
+        const list = await getLatestTrends()
+        const byParam = {}
+        list.forEach((item) => {
+          byParam[item.parameter] = {
+            currentValue: item.currentValue,
+            highLevel: item.highLevel,
+            lowLevel: item.lowLevel,
+            timestamp: item.timestamp
+          }
+        })
+        setLiveParams(byParam)
+      } catch (_) {
+        // keep previous values
+      }
+    }
+    fetchLatest()
+    const interval = setInterval(fetchLatest, 2000)
     return () => clearInterval(interval)
   }, [])
 
@@ -81,6 +93,26 @@ const MotorHealth = () => {
       critical: { color: '#ef4444', bg: '#fef2f2', icon: FaExclamationTriangle }
     }
     return badges[status] || badges.normal
+  }
+
+  const getParamStatus = (value, highLevel, lowLevel) => {
+    if (value == null || Number.isNaN(value)) return 'normal'
+    const hl = Number(highLevel)
+    const ll = Number(lowLevel)
+    if (hl != null && !Number.isNaN(hl) && value >= hl) return 'warning'
+    if (ll != null && !Number.isNaN(ll) && value <= ll) return 'warning'
+    return 'normal'
+  }
+
+  const getBarPercent = (value, highLevel, lowLevel) => {
+    if (value == null || Number.isNaN(value)) return 50
+    const hl = Number(highLevel)
+    const ll = Number(lowLevel)
+    if (hl != null && ll != null && !Number.isNaN(hl) && !Number.isNaN(ll) && hl > ll) {
+      const p = ((value - ll) / (hl - ll)) * 100
+      return Math.min(100, Math.max(0, p))
+    }
+    return 50
   }
 
   const CircularProgress = ({ percentage, size = 180, strokeWidth = 12, color }) => {
@@ -160,12 +192,6 @@ const MotorHealth = () => {
           <h1 className="page-title">Motor Health Analysis</h1>
           <p className="page-subtitle">Comprehensive monitoring of motor performance metrics</p>
         </div>
-        <div className="header-actions">
-          <div className="status-badge online">
-            <span className="status-dot"></span>
-            All Systems Operational
-          </div>
-        </div>
       </div>
 
       <div className="health-overview-section">
@@ -231,117 +257,70 @@ const MotorHealth = () => {
           </div>
         </div>
 
-        <div className="health-metrics-grid">
-          <ParameterCard
-            icon={FaTemperatureHigh}
-            label="Temperature"
-            value={healthData.temperature.value.toFixed(1)}
-            unit="°C"
-            status={healthData.temperature.status}
-            trend={healthData.temperature.trend}
-            color="#ef4444"
-          />
-          <ParameterCard
-            icon={FaTachometerAlt}
-            label="Vibration"
-            value={healthData.vibration.value.toFixed(1)}
-            unit="mm/s"
-            status={healthData.vibration.status}
-            trend={healthData.vibration.trend}
-            color="#3b82f6"
-          />
-          <ParameterCard
-            icon={FaBolt}
-            label="Current"
-            value={healthData.current.value.toFixed(2)}
-            unit="A"
-            status={healthData.current.status}
-            trend={healthData.current.trend}
-            color="#f59e0b"
-          />
-          <ParameterCard
-            icon={FaChartLine}
-            label="Efficiency"
-            value={healthData.efficiency.value.toFixed(1)}
-            unit="%"
-            status={healthData.efficiency.status}
-            trend={healthData.efficiency.trend}
-            color="#10b981"
-          />
+        <div className="health-metrics-grid health-metrics-grid-6">
+          {LIVE_PARAMS.map((param) => {
+            const data = liveParams[param.id]
+            const value = data?.currentValue
+            const status = getParamStatus(value, data?.highLevel, data?.lowLevel)
+            const displayValue = value != null && !Number.isNaN(value)
+              ? (Number(value) % 1 === 0 ? String(Number(value)) : Number(value).toFixed(2))
+              : '—'
+            const Icon = param.icon
+            return (
+              <ParameterCard
+                key={param.id}
+                icon={Icon}
+                label={param.label}
+                value={displayValue}
+                unit={param.unit}
+                status={status}
+                trend="stable"
+                color={param.color}
+              />
+            )
+          })}
         </div>
       </div>
 
       <div className="detailed-parameters-section">
-        <h3 className="section-title">Detailed Parameters</h3>
+        <h3 className="section-title">Detailed Parameters (Live)</h3>
         <div className="parameters-grid">
-          <div className="detailed-param-card">
-            <div className="param-header">
-              <FaCog className="param-icon" />
-              <span className="param-name">Voltage</span>
-            </div>
-            <div className="param-value-display">
-              <span className="param-value-main">{healthData.voltage.value.toFixed(1)}</span>
-              <span className="param-value-unit">V</span>
-            </div>
-            <div className="param-bar">
-              <div 
-                className="param-bar-fill" 
-                style={{ 
-                  width: `${(healthData.voltage.value / 240) * 100}%`,
-                  backgroundColor: getHealthColor((healthData.voltage.value / 240) * 100)
-                }}
-              ></div>
-            </div>
-            <div className="param-footer">
-              <span className="param-status">Optimal Range: 220-240V</span>
-            </div>
-          </div>
-
-          <div className="detailed-param-card">
-            <div className="param-header">
-              <FaTachometerAlt className="param-icon" />
-              <span className="param-name">Speed</span>
-            </div>
-            <div className="param-value-display">
-              <span className="param-value-main">{healthData.speed.value.toFixed(0)}</span>
-              <span className="param-value-unit">RPM</span>
-            </div>
-            <div className="param-bar">
-              <div 
-                className="param-bar-fill" 
-                style={{ 
-                  width: `${(healthData.speed.value / 2000) * 100}%`,
-                  backgroundColor: getHealthColor((healthData.speed.value / 2000) * 100)
-                }}
-              ></div>
-            </div>
-            <div className="param-footer">
-              <span className="param-status">Target: 1500-1800 RPM</span>
-            </div>
-          </div>
-
-          <div className="detailed-param-card">
-            <div className="param-header">
-              <FaChartLine className="param-icon" />
-              <span className="param-name">Power Factor</span>
-            </div>
-            <div className="param-value-display">
-              <span className="param-value-main">0.94</span>
-              <span className="param-value-unit"></span>
-            </div>
-            <div className="param-bar">
-              <div 
-                className="param-bar-fill" 
-                style={{ 
-                  width: '94%',
-                  backgroundColor: '#10b981'
-                }}
-              ></div>
-            </div>
-            <div className="param-footer">
-              <span className="param-status">Excellent</span>
-            </div>
-          </div>
+          {LIVE_PARAMS.map((param) => {
+            const data = liveParams[param.id]
+            const value = data?.currentValue
+            const displayValue = value != null && !Number.isNaN(value)
+              ? (Number(value) % 1 === 0 ? String(Number(value)) : Number(value).toFixed(2))
+              : '—'
+            const barPct = getBarPercent(value, data?.highLevel, data?.lowLevel)
+            const Icon = param.icon
+            const rangeText = data?.lowLevel != null && data?.highLevel != null
+              ? `Range: ${data.lowLevel} – ${data.highLevel} ${param.unit}`.trim()
+              : 'Live data'
+            return (
+              <div key={param.id} className="detailed-param-card">
+                <div className="param-header">
+                  <Icon className="param-icon" style={{ color: param.color }} />
+                  <span className="param-name">{param.label}</span>
+                </div>
+                <div className="param-value-display">
+                  <span className="param-value-main">{displayValue}</span>
+                  <span className="param-value-unit">{param.unit}</span>
+                </div>
+                <div className="param-bar">
+                  <div
+                    className="param-bar-fill"
+                    style={{
+                      width: `${barPct}%`,
+                      backgroundColor: getHealthColor(barPct)
+                    }}
+                  />
+                </div>
+                <div className="param-footer">
+                  <span className="param-status">{rangeText}</span>
+                </div>
+              </div>
+            )
+          })}
         </div>
       </div>
     </div>

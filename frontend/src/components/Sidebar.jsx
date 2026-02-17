@@ -2,15 +2,11 @@ import { useState } from 'react'
 import { 
   Home,
   Activity,
-  TrendingUp,
   Bell,
-  Settings,
   Wrench,
   ChevronDown,
   Cog,
-  Monitor,
-  FileText,
-  Heart
+  Monitor
 } from 'lucide-react'
 import mitsubishiLogo from '../assets/mitsubishi-electric-changes-for-the-better-logo-png_seeklogo-93542-removebg-preview.png'
 import mitsubishiLogoCollapsed from '../assets/mitsubishi logo.png'
@@ -24,8 +20,7 @@ const Sidebar = ({ activePage, setActivePage, collapsed, setCollapsed }) => {
     { 
       id: 'home', 
       label: 'Home', 
-      icon: Home, 
-      hasNotification: true 
+      icon: Home 
     },
     { 
       id: 'motor-setup', 
@@ -68,11 +63,6 @@ const Sidebar = ({ activePage, setActivePage, collapsed, setCollapsed }) => {
       id: 'actions', 
       label: 'Maintenance', 
       icon: Wrench 
-    },
-    { 
-      id: 'health-indexing', 
-      label: 'Health Indexing', 
-      icon: Heart 
     }
   ]
 
@@ -133,7 +123,7 @@ const Sidebar = ({ activePage, setActivePage, collapsed, setCollapsed }) => {
               >
                 <Icon className="nav-icon" size={22} strokeWidth={2} />
                 {!collapsed && <span className="nav-label">{item.label}</span>}
-                {item.hasNotification && !collapsed && (
+                {!collapsed && activePage === item.id && (
                   <span className="notification-dot"></span>
                 )}
                 {item.hasDropdown && !collapsed && (
@@ -160,6 +150,7 @@ const Sidebar = ({ activePage, setActivePage, collapsed, setCollapsed }) => {
                         >
                           <span className="dropdown-dot"></span>
                           <span className="dropdown-label">{subItem.label}</span>
+                          {activePage === subItem.id && <span className="notification-dot notification-dot-dropdown"></span>}
                           {subItem.hasSubDropdown && (
                             <ChevronDown 
                               className={`dropdown-chevron-sub ${liveTrendsOpen ? 'rotated' : ''}`}
@@ -180,6 +171,7 @@ const Sidebar = ({ activePage, setActivePage, collapsed, setCollapsed }) => {
                               >
                                 <span className="dropdown-dot-sub"></span>
                                 <span className="dropdown-label">{subSubItem.label}</span>
+                                {activePage === subSubItem.id && <span className="notification-dot notification-dot-dropdown-sub"></span>}
                               </button>
                             ))}
                           </div>
