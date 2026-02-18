@@ -17,9 +17,12 @@ import PredictiveData from './pages/PredictiveData'
 import NewAlarmsPopup from './components/NewAlarmsPopup'
 import mecaFooter from './assets/meca.png'
 
+const PAGES_WITH_MECA_FOOTER = ['home', 'motor-setup', 'missions', 'alarms', 'actions', 'maintenance']
+
 function App() {
   const [activePage, setActivePage] = useState('home')
   const [sidebarCollapsed, setSidebarCollapsed] = useState(true)
+  const showMecaFooter = PAGES_WITH_MECA_FOOTER.includes(activePage)
 
   const renderPage = () => {
     switch (activePage) { 
@@ -90,10 +93,12 @@ function App() {
         {renderPage()}
       </main>
 
-      {/* Footer image - centrally aligned */}
-      <footer className="dashboard-footer">
-        <img src={mecaFooter} alt="MECA" className="dashboard-footer-img" />
-      </footer>
+      {/* Footer image - only on Home, Motor Setup, Alarms, Maintenance */}
+      {showMecaFooter && (
+        <footer className="dashboard-footer">
+          <img src={mecaFooter} alt="MECA" className="dashboard-footer-img" />
+        </footer>
+      )}
     </div>
   )
 }
