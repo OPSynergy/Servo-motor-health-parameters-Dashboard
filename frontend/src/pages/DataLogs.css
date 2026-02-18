@@ -399,14 +399,6 @@
   background: #f8f9fa;
 }
 
-.data-logs-table tbody tr.data-row.critical {
-  background: #dc2626;
-}
-
-.data-logs-table tbody tr.data-row.warning {
-  background: #ea580c;
-}
-
 .data-logs-table tbody tr.data-row {
   background: white;
 }

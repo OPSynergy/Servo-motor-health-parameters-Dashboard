@@ -77,22 +77,49 @@ function initializeDatabase() {
     // Column already exists, ignore
   }
   
+  // live_trends: one row per MQTT message, columns match MQTT payload
   db.exec(`
     CREATE TABLE IF NOT EXISTS live_trends (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      parameter TEXT NOT NULL,
-      high_level REAL NOT NULL,
-      low_level REAL NOT NULL,
-      current_value REAL NOT NULL,
+      torque REAL,
+      speed REAL,
+      power REAL,
+      vibration REAL,
+      temperature REAL,
+      belt REAL,
+      mhi REAL,
+      fault TEXT,
       timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
     )
   `)
-  
-  // Create index on parameter and timestamp for faster queries
-  db.exec(`
-    CREATE INDEX IF NOT EXISTS idx_live_trends_parameter_timestamp 
-    ON live_trends(parameter, timestamp DESC)
-  `)
+  // Migration: if old schema (parameter column) exists, replace with new schema and clear
+  try {
+    const tableInfo = db.prepare("PRAGMA table_info(live_trends)").all()
+    const hasParameter = tableInfo.some(c => c.name === 'parameter')
+    if (hasParameter) {
+      db.exec(`DROP TABLE IF EXISTS live_trends`)
+      db.exec(`
+        CREATE TABLE live_trends (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          torque REAL,
+          speed REAL,
+          power REAL,
+          vibration REAL,
+          temperature REAL,
+          belt REAL,
+          mhi REAL,
+          fault TEXT,
+          timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+      `)
+      console.log('Migrated live_trends: new schema (torque, speed, power, vibration, temperature, belt, mhi, fault, timestamp)')
+    }
+  } catch (e) {
+    console.warn('live_trends migration check:', e.message)
+  }
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_live_trends_timestamp ON live_trends(timestamp DESC)`)
+  const liveTrendsCols = db.prepare("PRAGMA table_info(live_trends)").all().map(c => c.name)
+  console.log('live_trends table columns:', liveTrendsCols.join(', '))
 
   db.exec(`
     CREATE TABLE IF NOT EXISTS alarms (
@@ -128,17 +155,6 @@ function initializeDatabase() {
     console.log('motor_health: added column status')
   } catch (e) {
     // Column already exists
-  }
-
-  // Migration: rename current-consumption to power-consumption in existing data
-  try {
-    const update = db.prepare(`UPDATE live_trends SET parameter = 'power-consumption' WHERE parameter = 'current-consumption'`)
-    const result = update.run()
-    if (result.changes > 0) {
-      console.log('Migrated live_trends: current-consumption -> power-consumption, rows updated:', result.changes)
-    }
-  } catch (e) {
-    console.warn('Migration current-consumption -> power-consumption:', e.message)
   }
 
   // Default motors insertion removed - start with empty database
@@ -326,9 +342,43 @@ function getLocalDate() {
   return `${year}-${month}-${day}`
 }
 
+// Try multiple keys (and lowercase) so MQTT payload works with different naming (MHI, mhi, etc.)
+function getPayloadNumber(obj, ...keys) {
+  if (obj == null || typeof obj !== 'object') return undefined
+  for (const k of keys) {
+    let v = obj[k]
+    if (v !== undefined && v !== null) {
+      const n = Number(v)
+      if (!Number.isNaN(n)) return n
+    }
+    const lower = k.toLowerCase?.()
+    if (lower && lower !== k) {
+      v = obj[lower]
+      if (v !== undefined && v !== null) {
+        const n = Number(v)
+        if (!Number.isNaN(n)) return n
+      }
+    }
+  }
+  return undefined
+}
+function getPayloadString(obj, ...keys) {
+  if (obj == null || typeof obj !== 'object') return undefined
+  for (const k of keys) {
+    const v = obj[k]
+    if (v !== undefined && v !== null) return String(v)
+    const lower = k.toLowerCase?.()
+    if (lower && lower !== k) {
+      const v2 = obj[lower]
+      if (v2 !== undefined && v2 !== null) return String(v2)
+    }
+  }
+  return undefined
+}
+
 const liveTrendInsert = db.prepare(`
-  INSERT INTO live_trends (parameter, high_level, low_level, current_value, timestamp)
-  VALUES (?, ?, ?, ?, ?)
+  INSERT INTO live_trends (torque, speed, power, vibration, temperature, belt, mhi, fault, timestamp)
+  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
 `)
 
 const alarmInsert = db.prepare(`
@@ -341,7 +391,17 @@ const motorHealthInsert = db.prepare(`
   VALUES (?, ?, ?, ?, ?)
 `)
 
-// Default HL/LL for Live Trends when inserting from MQTT (same as frontend defaults)
+// Map API parameter names to live_trends column names (new schema)
+const LIVE_TRENDS_PARAM_COLUMN = {
+  'vibration': 'vibration',
+  'temperature': 'temperature',
+  'power-consumption': 'power',
+  'belt-tension': 'belt',
+  'speed': 'speed',
+  'torque': 'torque'
+}
+
+// Default HL/LL for Live Trends (for API responses)
 const MQTT_PARAM_CONFIG = {
   vibration: { hl: 80, ll: 30 },
   temperature: { hl: 85, ll: 35 },
@@ -351,7 +411,7 @@ const MQTT_PARAM_CONFIG = {
   torque: { hl: 90, ll: 25 }
 }
 
-// Save live trend data
+// Save live trend data (inserts one row with all columns; requested parameter set to currentValue, others from mqttState or 0)
 app.post('/api/live-trends', (req, res) => {
   try {
     const { parameter, highLevel, lowLevel, currentValue } = req.body
@@ -360,21 +420,29 @@ app.post('/api/live-trends', (req, res) => {
       return res.status(400).json({ error: 'Missing required fields: parameter, highLevel, lowLevel, currentValue' })
     }
     
-    // Validate parameter
     const validParameters = ['vibration', 'temperature', 'power-consumption', 'belt-tension', 'speed', 'torque']
     if (!validParameters.includes(parameter)) {
       return res.status(400).json({ error: `Invalid parameter. Must be one of: ${validParameters.join(', ')}` })
     }
     
-    const localTimestamp = getLocalTimestamp()
-    const result = liveTrendInsert.run(parameter, highLevel, lowLevel, currentValue, localTimestamp)
+    const ts = getLocalTimestamp()
+    const num = Number(currentValue)
+    const torque = parameter === 'torque' ? num : (mqttState.torque ?? 0)
+    const speed = parameter === 'speed' ? num : (mqttState.speed ?? 0)
+    const power = parameter === 'power-consumption' ? num : (mqttState.unit_power ?? 0)
+    const vibration = parameter === 'vibration' ? num : (mqttState.vibration ?? 0)
+    const temperature = parameter === 'temperature' ? num : (mqttState.temperature ?? 0)
+    const belt = parameter === 'belt-tension' ? num : (mqttState.belt_tension ?? 0)
+    const mhi = mqttState.mhi ?? 0
+    const fault = (mqttState.fault != null ? String(mqttState.fault) : '') || ''
+    const result = liveTrendInsert.run(torque, speed, power, vibration, temperature, belt, mhi, fault, ts)
     
     res.status(201).json({
       id: result.lastInsertRowid,
       parameter,
       highLevel,
       lowLevel,
-      currentValue,
+      currentValue: Number.isNaN(num) ? currentValue : num,
       timestamp: new Date().toISOString()
     })
   } catch (error) {
@@ -383,73 +451,75 @@ app.post('/api/live-trends', (req, res) => {
   }
 })
 
-// Get live trend data (latest or history)
+// Get live trend data (latest or history). Parameter filters by column (vibration, torque, etc.)
 app.get('/api/live-trends', (req, res) => {
   try {
     const { parameter, limit = 100 } = req.query
     const limitNum = parseInt(limit)
-    
-    let query = 'SELECT * FROM live_trends'
-    let params = []
-    
-    if (parameter) {
-      query += ' WHERE parameter = ?'
-      params.push(parameter)
+    const col = parameter ? LIVE_TRENDS_PARAM_COLUMN[parameter] : null
+    const cfg = parameter ? MQTT_PARAM_CONFIG[parameter] : null
+
+    if (parameter && !col) {
+      return res.status(400).json({ error: `Invalid parameter. Must be one of: ${Object.keys(LIVE_TRENDS_PARAM_COLUMN).join(', ')}` })
     }
-    
-    // Only apply LIMIT if limit is greater than 0
-    if (limitNum > 0) {
-      query += ' ORDER BY timestamp DESC LIMIT ?'
-      params.push(limitNum)
+
+    let query, params
+    if (col) {
+      query = `SELECT id, ${col} as current_value, timestamp FROM live_trends ORDER BY timestamp DESC`
+      if (limitNum > 0) query += ' LIMIT ?'
+      params = limitNum > 0 ? [limitNum] : []
     } else {
-      query += ' ORDER BY timestamp DESC'
+      query = 'SELECT * FROM live_trends ORDER BY timestamp DESC'
+      if (limitNum > 0) query += ' LIMIT ?'
+      params = limitNum > 0 ? [limitNum] : []
     }
-    
     const trends = db.prepare(query).all(...params)
-    
-    res.json(trends.map(trend => {
-      // Convert SQLite timestamp to ISO string for consistent handling
-      const timestamp = trend.timestamp ? new Date(trend.timestamp).toISOString() : new Date().toISOString()
-      return {
-        id: trend.id,
-        parameter: trend.parameter,
-        highLevel: trend.high_level,
-        lowLevel: trend.low_level,
-        currentValue: trend.current_value,
-        timestamp: timestamp
-      }
-    }))
+
+    if (col) {
+      res.json(trends.map(trend => {
+        const timestamp = trend.timestamp ? new Date(trend.timestamp).toISOString() : new Date().toISOString()
+        return {
+          id: trend.id,
+          parameter,
+          highLevel: cfg ? cfg.hl : null,
+          lowLevel: cfg ? cfg.ll : null,
+          currentValue: trend.current_value,
+          timestamp
+        }
+      }))
+    } else {
+      res.json(trends.map(trend => {
+        const timestamp = trend.timestamp ? new Date(trend.timestamp).toISOString() : new Date().toISOString()
+        return { ...trend, timestamp }
+      }))
+    }
   } catch (error) {
     console.error('Error fetching live trends:', error)
     res.status(500).json({ error: 'Failed to fetch live trend data' })
   }
 })
 
-// Get latest values for all parameters
+// Get latest values for all parameters (from most recent row)
 app.get('/api/live-trends/latest', (req, res) => {
   try {
-    const latest = db.prepare(`
-      SELECT parameter, high_level, low_level, current_value, timestamp
-      FROM live_trends
-      WHERE id IN (
-        SELECT MAX(id) 
-        FROM live_trends 
-        GROUP BY parameter
-      )
-      ORDER BY parameter
-    `).all()
-    
-    res.json(latest.map(trend => {
-      // Convert SQLite timestamp to ISO string for consistent handling
-      const timestamp = trend.timestamp ? new Date(trend.timestamp).toISOString() : new Date().toISOString()
-      return {
-        parameter: trend.parameter,
-        highLevel: trend.high_level,
-        lowLevel: trend.low_level,
-        currentValue: trend.current_value,
-        timestamp: timestamp
-      }
-    }))
+    const row = db.prepare('SELECT * FROM live_trends ORDER BY timestamp DESC LIMIT 1').get()
+    if (!row) {
+      return res.json([])
+    }
+    const timestamp = row.timestamp ? new Date(row.timestamp).toISOString() : new Date().toISOString()
+    const out = []
+    for (const param of Object.keys(LIVE_TRENDS_PARAM_COLUMN)) {
+      const col = LIVE_TRENDS_PARAM_COLUMN[param]
+      const cfg = MQTT_PARAM_CONFIG[param]
+      out.push({
+        parameter: param,
+        highLevel: cfg ? cfg.hl : null,
+        lowLevel: cfg ? cfg.ll : null,
+        currentValue: row[col] != null ? row[col] : 0,
+        timestamp
+      })
+    }
+    res.json(out)
   } catch (error) {
     console.error('Error fetching latest trends:', error)
     res.status(500).json({ error: 'Failed to fetch latest trend data' })
@@ -470,114 +540,68 @@ app.get('/api/live-trends/historical', (req, res) => {
       return res.status(400).json({ error: 'Invalid minutesAgo value' })
     }
     
-    // For 8 hours (480 minutes), show all data in the database
-    // For other time periods, show data up to that time
-    let query = `
-      SELECT parameter, high_level, low_level, current_value, timestamp
-      FROM live_trends
-    `
+    const col = parameter ? LIVE_TRENDS_PARAM_COLUMN[parameter] : null
+    const cfg = parameter ? MQTT_PARAM_CONFIG[parameter] : null
+    const selectCols = col ? `${col} as current_value, timestamp` : 'torque, speed, power, vibration, temperature, belt, mhi, fault, timestamp'
+    let query = `SELECT ${selectCols} FROM live_trends`
     let params = []
     let hasWhere = false
     
-    // Filter by afterTimestamp if provided (data after last clear)
     if (afterTimestamp) {
-      // Convert ISO timestamp to local datetime format
       const afterDate = new Date(afterTimestamp)
-      const year = afterDate.getFullYear()
-      const month = String(afterDate.getMonth() + 1).padStart(2, '0')
-      const day = String(afterDate.getDate()).padStart(2, '0')
-      const hours = String(afterDate.getHours()).padStart(2, '0')
-      const mins = String(afterDate.getMinutes()).padStart(2, '0')
-      const secs = String(afterDate.getSeconds()).padStart(2, '0')
-      const afterTimestampFormatted = `${year}-${month}-${day} ${hours}:${mins}:${secs}`
-      
+      const afterTimestampFormatted = `${afterDate.getFullYear()}-${String(afterDate.getMonth() + 1).padStart(2, '0')}-${String(afterDate.getDate()).padStart(2, '0')} ${String(afterDate.getHours()).padStart(2, '0')}:${String(afterDate.getMinutes()).padStart(2, '0')}:${String(afterDate.getSeconds()).padStart(2, '0')}`
       query += ' WHERE timestamp > ?'
       params.push(afterTimestampFormatted)
       hasWhere = true
     }
     
-    // Only filter by time if not 8 hours (480 minutes)
     if (minutes !== 480) {
-      // Calculate target time (start time) in local timezone - data FROM this time TO NOW
       const targetTime = new Date(Date.now() - minutes * 60 * 1000)
-      const year = targetTime.getFullYear()
-      const month = String(targetTime.getMonth() + 1).padStart(2, '0')
-      const day = String(targetTime.getDate()).padStart(2, '0')
-      const hours = String(targetTime.getHours()).padStart(2, '0')
-      const mins = String(targetTime.getMinutes()).padStart(2, '0')
-      const secs = String(targetTime.getSeconds()).padStart(2, '0')
-      const targetTimestamp = `${year}-${month}-${day} ${hours}:${mins}:${secs}`
-      
-      // Get data FROM target time onwards (timestamp >= targetTimestamp)
-      // Use datetime() function for proper comparison in SQLite
+      const targetTimestamp = `${targetTime.getFullYear()}-${String(targetTime.getMonth() + 1).padStart(2, '0')}-${String(targetTime.getDate()).padStart(2, '0')} ${String(targetTime.getHours()).padStart(2, '0')}:${String(targetTime.getMinutes()).padStart(2, '0')}:${String(targetTime.getSeconds()).padStart(2, '0')}`
       query += hasWhere ? ' AND datetime(timestamp) >= datetime(?)' : ' WHERE datetime(timestamp) >= datetime(?)'
       params.push(targetTimestamp)
       hasWhere = true
-      
-      console.log(`[Historical Query] Fetching data for ${minutes} minutes ago. Target time: ${targetTimestamp}, Parameter: ${parameter || 'all'}`)
-      console.log(`[Historical Query] Full query: ${query}`)
-      console.log(`[Historical Query] Params:`, params)
     }
     
-    if (parameter) {
-      query += hasWhere ? ' AND parameter = ?' : ' WHERE parameter = ?'
-      params.push(parameter)
-    }
-    
-    // Order by timestamp DESC to get the most recent data first
-    // For 8hrs, show all data; for others limit to 500 so live graph has enough points
-    if (minutes === 480) {
-      query += ' ORDER BY timestamp DESC'
-    } else {
-      query += ' ORDER BY timestamp DESC LIMIT 500'
-    }
-    
+    query += minutes === 480 ? ' ORDER BY timestamp DESC' : ' ORDER BY timestamp DESC LIMIT 500'
     const data = db.prepare(query).all(...params)
     
-    console.log(`[Historical Query] Found ${data.length} records for ${minutes} minutes ago, parameter: ${parameter || 'all'}`)
-    if (data.length > 0) {
-      console.log(`[Historical Query] First record timestamp: ${data[0].timestamp}, Last record timestamp: ${data[data.length - 1].timestamp}`)
+    if (col) {
+      res.json(data.map(trend => {
+        const timestamp = trend.timestamp ? new Date(trend.timestamp).toISOString() : new Date().toISOString()
+        return {
+          parameter,
+          highLevel: cfg ? cfg.hl : null,
+          lowLevel: cfg ? cfg.ll : null,
+          currentValue: trend.current_value,
+          timestamp
+        }
+      }))
+    } else {
+      res.json(data.map(trend => {
+        const timestamp = trend.timestamp ? new Date(trend.timestamp).toISOString() : new Date().toISOString()
+        return { ...trend, timestamp }
+      }))
     }
-    
-    res.json(data.map(trend => {
-      // Convert SQLite timestamp to ISO string for consistent handling
-      const timestamp = trend.timestamp ? new Date(trend.timestamp).toISOString() : new Date().toISOString()
-      return {
-        parameter: trend.parameter,
-        highLevel: trend.high_level,
-        lowLevel: trend.low_level,
-        currentValue: trend.current_value,
-        timestamp: timestamp
-      }
-    }))
   } catch (error) {
     console.error('Error fetching historical trends:', error)
     res.status(500).json({ error: 'Failed to fetch historical trend data' })
   }
 })
 
-// Delete all data for a specific parameter
+// Delete all rows from live_trends (parameter required for API compatibility but clears entire table)
 app.delete('/api/live-trends', (req, res) => {
   try {
     const { parameter } = req.query
-    
     if (!parameter) {
       return res.status(400).json({ error: 'parameter is required' })
     }
-    
-    // Validate parameter
     const validParameters = ['vibration', 'temperature', 'power-consumption', 'belt-tension', 'speed', 'torque']
     if (!validParameters.includes(parameter)) {
       return res.status(400).json({ error: `Invalid parameter. Must be one of: ${validParameters.join(', ')}` })
     }
-    
-    const deleteStmt = db.prepare('DELETE FROM live_trends WHERE parameter = ?')
-    const result = deleteStmt.run(parameter)
-    
-    res.json({ 
-      message: `All data for ${parameter} deleted successfully`,
-      deletedCount: result.changes
-    })
+    const result = db.prepare('DELETE FROM live_trends').run()
+    res.json({ message: 'All live trends data deleted successfully', deletedCount: result.changes })
   } catch (error) {
     console.error('Error deleting live trends:', error)
     res.status(500).json({ error: 'Failed to delete live trend data' })
@@ -696,46 +720,72 @@ const server = app.listen(PORT, () => {
         else console.log(`MQTT subscribed to topic: ${MQTT_TOPIC}`)
       })
     })
+    let mqttMessageCount = 0
     client.on('message', (topic, payload) => {
+      mqttMessageCount++
+      if (process.env.DEBUG_MQTT === '1' || mqttMessageCount <= 3) {
+        console.log('[MQTT] message #' + mqttMessageCount + ' on topic:', topic, 'length:', payload?.length ?? 0)
+      }
+      const raw = (payload && typeof payload.toString === 'function') ? payload.toString() : String(payload || '')
+      if (process.env.DEBUG_MQTT === '1') console.log('[MQTT] raw:', raw.slice(0, 200))
+      let data
       try {
-        const raw = payload.toString()
-        const data = JSON.parse(raw)
+        data = typeof raw === 'string' && raw.trim().startsWith('{') ? JSON.parse(raw) : {}
+      } catch (e) {
+        const num = parseFloat(raw)
+        if (!Number.isNaN(num)) data = { MHI: num, mhi: num }
+        else {
+          console.error('MQTT message parse error:', e.message, 'raw:', raw.slice(0, 200))
+          return
+        }
+      }
+      try {
         const ts = getLocalTimestamp()
 
-        const mhiRaw = data.MHI ?? data.mhi
-        mqttState.mhi = mhiRaw != null ? Number(mhiRaw) : mqttState.mhi
-        mqttState.fault = data.fault != null ? String(data.fault) : mqttState.fault
-        mqttState.torque = data.torque != null ? Number(data.torque) : mqttState.torque
-        mqttState.speed = data.speed != null ? Number(data.speed) : mqttState.speed
-        mqttState.unit_power = data.unit_power != null ? Number(data.unit_power) : mqttState.unit_power
-        mqttState.vibration = data.vibration != null ? Number(data.vibration) : mqttState.vibration
-        mqttState.temperature = data.temperature != null ? Number(data.temperature) : mqttState.temperature
-        mqttState.belt_tension = data.belt_tension != null ? Number(data.belt_tension) : mqttState.belt_tension
+        const mhiVal = getPayloadNumber(data, 'MHI', 'mhi', 'MotorHealthIndex', 'motor_health_index')
+        if (mhiVal !== undefined) mqttState.mhi = mhiVal
+        const faultVal = getPayloadString(data, 'fault', 'Fault', 'FAULT')
+        if (faultVal !== undefined) mqttState.fault = faultVal
+        const torqueVal = getPayloadNumber(data, 'torque', 'Torque', 'TORQUE')
+        if (torqueVal !== undefined) mqttState.torque = torqueVal
+        const speedVal = getPayloadNumber(data, 'speed', 'Speed', 'SPEED')
+        if (speedVal !== undefined) mqttState.speed = speedVal
+        // Payload may use "power" and "belt" (your device) or "unit_power" and "belt_tension"
+        const unitPowerVal = getPayloadNumber(data, 'power', 'Power', 'unit_power', 'unitPower', 'Unit_Power')
+        if (unitPowerVal !== undefined) mqttState.unit_power = unitPowerVal
+        const vibrationVal = getPayloadNumber(data, 'vibration', 'Vibration', 'VIBRATION')
+        if (vibrationVal !== undefined) mqttState.vibration = vibrationVal
+        const temperatureVal = getPayloadNumber(data, 'temperature', 'Temperature', 'TEMPERATURE', 'temp', 'Temp')
+        if (temperatureVal !== undefined) mqttState.temperature = temperatureVal
+        const beltTensionVal = getPayloadNumber(data, 'belt', 'Belt', 'belt_tension', 'beltTension', 'Belt_Tension')
+        if (beltTensionVal !== undefined) mqttState.belt_tension = beltTensionVal
         mqttState.updatedAt = ts
 
-        const paramMap = [
-          ['vibration', data.vibration],
-          ['temperature', data.temperature],
-          ['power-consumption', data.unit_power],
-          ['belt-tension', data.belt_tension],
-          ['speed', data.speed],
-          ['torque', data.torque]
-        ]
-        for (const [param, value] of paramMap) {
-          if (value == null || typeof value !== 'number') continue
-          const cfg = MQTT_PARAM_CONFIG[param]
-          if (cfg) {
-            const v = Math.round(Number(value) * 100) / 100
-            liveTrendInsert.run(param, cfg.hl, cfg.ll, v, ts)
+        // Log one row per MQTT message with columns matching payload: torque, speed, power, vibration, temperature, belt, mhi, fault
+        const round = (v) => (v != null && !Number.isNaN(Number(v))) ? Math.round(Number(v) * 100) / 100 : 0
+        const torqueR = round(torqueVal ?? data.torque)
+        const speedR = round(speedVal ?? data.speed)
+        const powerR = round(unitPowerVal ?? data.power ?? data.unit_power)
+        const vibrationR = round(vibrationVal ?? data.vibration)
+        const temperatureR = round(temperatureVal ?? data.temperature)
+        const beltR = round(beltTensionVal ?? data.belt ?? data.belt_tension)
+        const mhiR = round(mhiVal ?? data.MHI ?? data.mhi)
+        const faultStr = mqttState.fault != null ? String(mqttState.fault).trim() : ''
+        try {
+          const result = liveTrendInsert.run(torqueR, speedR, powerR, vibrationR, temperatureR, beltR, mhiR, faultStr, ts)
+          if (mqttMessageCount <= 5 || process.env.DEBUG_MQTT === '1') {
+            console.log('[MQTT] live_trends insert ok, row id:', result.lastInsertRowid)
           }
+        } catch (insertErr) {
+          console.error('[MQTT] live_trends INSERT failed:', insertErr.message, insertErr.stack)
         }
 
-        if (data.fault != null && String(data.fault).trim() !== '' && data.fault !== lastFaultForAlarm) {
-          lastFaultForAlarm = String(data.fault)
+        if (faultStr !== '' && faultStr !== lastFaultForAlarm) {
+          lastFaultForAlarm = faultStr
           alarmInsert.run('Critical', lastFaultForAlarm, 'active', ts)
         }
       } catch (e) {
-        console.error('MQTT message parse error:', e.message)
+        console.error('MQTT message handle error:', e.message, 'raw:', raw.slice(0, 200))
       }
     })
     client.on('error', (err) => console.error('MQTT error:', err.message))
@@ -760,30 +810,34 @@ const server = app.listen(PORT, () => {
         else console.log(`Predictive MQTT subscribed to: ${PREDICTIVE_MQTT_TOPIC}`)
       })
     })
+    let predictiveMessageCount = 0
     predClient.on('message', (topic, payload) => {
       try {
-        const raw = payload.toString()
+        const raw = (payload && typeof payload.toString === 'function') ? payload.toString() : String(payload || '')
         const data = typeof raw === 'string' && raw.trim().startsWith('{') ? JSON.parse(raw) : { value: parseFloat(raw) || 0 }
         const ts = getLocalTimestamp()
         const iso = new Date().toISOString()
         predictiveDataBuffer.push({ timestamp: ts, iso, ...data })
         if (predictiveDataBuffer.length > PREDICTIVE_BUFFER_MAX) predictiveDataBuffer.shift()
 
-        // Store numeric fields in live_trends only if NOT one of the main MQTT params.
-        // Main topic (esp/live) is the single source for: vibration, temperature, power-consumption, belt-tension, speed, torque.
-        const MAIN_MQTT_PARAMS = new Set(['vibration', 'temperature', 'power-consumption', 'belt-tension', 'speed', 'torque'])
-        const skipKeys = new Set(['timestamp', 'iso'])
-        for (const [key, val] of Object.entries(data)) {
-          if (skipKeys.has(key)) continue
-          let num = typeof val === 'number' ? val : parseFloat(val)
-          if (Number.isNaN(num)) continue
-          num = Math.round(num * 100) / 100
-          const param = PREDICTIVE_PARAM_MAP[key] || key.replace(/_/g, '-')
-          if (MAIN_MQTT_PARAMS.has(param)) continue
-          const cfg = MQTT_PARAM_CONFIG[param]
-          const hl = cfg ? cfg.hl : PREDICTIVE_DEFAULT_HL
-          const ll = cfg ? cfg.ll : PREDICTIVE_DEFAULT_LL
-          liveTrendInsert.run(param, hl, ll, num, ts)
+        // Save to live_trends (same columns as main MQTT: torque, speed, power, vibration, temperature, belt, mhi, fault)
+        const round = (v) => (v != null && !Number.isNaN(Number(v))) ? Math.round(Number(v) * 100) / 100 : 0
+        const torqueR = round(data.torque)
+        const speedR = round(data.speed)
+        const powerR = round(data.power ?? data.unit_power)
+        const vibrationR = round(data.vibration)
+        const temperatureR = round(data.temperature)
+        const beltR = round(data.belt ?? data.belt_tension)
+        const mhiR = round(data.MHI ?? data.mhi)
+        const faultStr = (data.fault != null ? String(data.fault).trim() : '') || ''
+        try {
+          liveTrendInsert.run(torqueR, speedR, powerR, vibrationR, temperatureR, beltR, mhiR, faultStr, ts)
+          predictiveMessageCount++
+          if (predictiveMessageCount <= 5) {
+            console.log('[Predictive MQTT] live_trends row saved #' + predictiveMessageCount)
+          }
+        } catch (insertErr) {
+          console.error('[Predictive MQTT] live_trends INSERT failed:', insertErr.message)
         }
       } catch (e) {
         console.error('Predictive MQTT parse error:', e.message)

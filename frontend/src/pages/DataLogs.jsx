@@ -1,32 +1,36 @@
 import { useState, useEffect } from 'react'
 import { getLiveTrends, deleteAllTrendsForParameter } from '../services/liveTrendsApi'
-import { FaTrash, FaFilter, FaDownload, FaCalendarAlt, FaClock, FaSearch } from 'react-icons/fa'
+import { FaTrash, FaDownload, FaCalendarAlt, FaClock, FaSearch } from 'react-icons/fa'
 import './DataLogs.css'
+
+// One row per MQTT message: { id, torque, speed, power, vibration, temperature, belt, mhi, fault, timestamp }
+const DATA_LOG_COLUMNS = [
+  { key: 'timestamp', label: 'Timestamp', type: 'date' },
+  { key: 'torque', label: 'Torque', type: 'number' },
+  { key: 'speed', label: 'Speed', type: 'number' },
+  { key: 'power', label: 'Power', type: 'number' },
+  { key: 'vibration', label: 'Vibration', type: 'number' },
+  { key: 'temperature', label: 'Temperature', type: 'number' },
+  { key: 'belt', label: 'Belt', type: 'number' },
+  { key: 'mhi', label: 'MHI', type: 'number' },
+  { key: 'fault', label: 'Fault', type: 'string' }
+]
 
 const DataLogs = () => {
   const [allData, setAllData] = useState([])
   const [filteredData, setFilteredData] = useState([])
   const [loading, setLoading] = useState(true)
-  const [selectedParameter, setSelectedParameter] = useState('all')
   const [selectedDate, setSelectedDate] = useState('')
   const [selectedTime, setSelectedTime] = useState({ hours: '', minutes: '', period: 'AM' })
   const [activeDateFilter, setActiveDateFilter] = useState('')
   const [activeTimeFilter, setActiveTimeFilter] = useState({ hours: '', minutes: '', period: 'AM' })
   const [sortConfig, setSortConfig] = useState({ key: 'timestamp', direction: 'desc' })
 
-  const parameters = [
-    { id: 'all', label: 'All Parameters' },
-    { id: 'vibration', label: 'Vibration' },
-    { id: 'temperature', label: 'Temperature' },
-    { id: 'power-consumption', label: 'Power Consumption' },
-    { id: 'belt-tension', label: 'Belt Tension' },
-    { id: 'speed', label: 'Speed' },
-    { id: 'torque', label: 'Torque' }
-  ]
-
-  // Fetch all data logs
+  // Fetch data logs on mount and refresh every 3s so new MQTT data (e.g. vibration) appears
   useEffect(() => {
     fetchDataLogs()
+    const interval = setInterval(fetchDataLogs, 3000)
+    return () => clearInterval(interval)
   }, [])
 
   const fetchDataLogs = async () => {
@@ -47,11 +51,6 @@ const DataLogs = () => {
   // Filter and sort data
   useEffect(() => {
     let filtered = [...allData]
-
-    // Filter by parameter
-    if (selectedParameter !== 'all') {
-      filtered = filtered.filter(item => item.parameter === selectedParameter)
-    }
 
     // Filter by date and time (use active filters)
     if (activeDateFilter || (activeTimeFilter.hours && activeTimeFilter.minutes)) {
@@ -124,26 +123,21 @@ const DataLogs = () => {
 
     // Sort data
     filtered.sort((a, b) => {
-      let aValue = a[sortConfig.key]
-      let bValue = b[sortConfig.key]
-
-      if (sortConfig.key === 'timestamp') {
-        aValue = new Date(aValue).getTime()
-        bValue = new Date(bValue).getTime()
+      let aVal = a[sortConfig.key]
+      let bVal = b[sortConfig.key]
+      if (sortConfig.key === 'timestamp' || sortConfig.key === 'fault') {
+        aVal = sortConfig.key === 'timestamp' ? new Date(aVal).getTime() : (aVal || '')
+        bVal = sortConfig.key === 'timestamp' ? new Date(bVal).getTime() : (bVal || '')
       } else {
-        aValue = parseFloat(aValue) || 0
-        bValue = parseFloat(bValue) || 0
+        aVal = parseFloat(aVal) || 0
+        bVal = parseFloat(bVal) || 0
       }
-
-      if (sortConfig.direction === 'asc') {
-        return aValue > bValue ? 1 : -1
-      } else {
-        return aValue < bValue ? 1 : -1
-      }
+      if (sortConfig.direction === 'asc') return aVal > bVal ? 1 : aVal < bVal ? -1 : 0
+      return aVal < bVal ? 1 : aVal > bVal ? -1 : 0
     })
 
     setFilteredData(filtered)
-  }, [allData, selectedParameter, activeDateFilter, activeTimeFilter, sortConfig])
+  }, [allData, activeDateFilter, activeTimeFilter, sortConfig])
 
   const handleSort = (key) => {
     setSortConfig(prevConfig => ({
@@ -165,12 +159,12 @@ const DataLogs = () => {
     setActiveTimeFilter({ hours: '', minutes: '', period: 'AM' })
   }
 
-  const handleDeleteParameter = async (parameter) => {
-    if (window.confirm(`Are you sure you want to delete all data records for ${parameter}? This action cannot be undone.`)) {
+  const handleDeleteAll = async () => {
+    if (window.confirm('Delete all data from live trends? This cannot be undone.')) {
       try {
-        await deleteAllTrendsForParameter(parameter)
-        await fetchDataLogs() // Refresh data
-        alert('Data deleted successfully')
+        await deleteAllTrendsForParameter('vibration') // backend clears entire table
+        await fetchDataLogs()
+        alert('All data deleted successfully')
       } catch (error) {
         console.error('Error deleting data:', error)
         alert('Failed to delete data. Please try again.')
@@ -179,16 +173,15 @@ const DataLogs = () => {
   }
 
   const handleExportCSV = () => {
-    const headers = ['Parameter', 'High Level', 'Low Level', 'Current Value', 'Timestamp']
+    const headers = DATA_LOG_COLUMNS.map(c => c.label)
     const csvContent = [
       headers.join(','),
-      ...filteredData.map(item => [
-        item.parameter || '',
-        item.highLevel || '',
-        item.lowLevel || '',
-        item.currentValue || '',
-        new Date(item.timestamp).toLocaleString()
-      ].join(','))
+      ...filteredData.map(item =>
+        DATA_LOG_COLUMNS.map(col => {
+          const v = item[col.key]
+          if (col.type === 'date') return v ? new Date(v).toLocaleString() : ''
+          return v != null && v !== '' ? v : ''
+        }).join(','))
     ].join('\n')
 
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
@@ -202,11 +195,6 @@ const DataLogs = () => {
     document.body.removeChild(link)
   }
 
-  const getParameterLabel = (param) => {
-    const paramObj = parameters.find(p => p.id === param)
-    return paramObj ? paramObj.label : param
-  }
-
   return (
     <div className="data-logs-container">
       <div className="data-logs-header">
@@ -216,21 +204,6 @@ const DataLogs = () => {
 
       <div className="data-logs-controls">
         <div className="controls-left">
-          <div className="filter-group">
-            <FaFilter className="filter-icon" />
-            <select
-              className="parameter-filter"
-              value={selectedParameter}
-              onChange={(e) => setSelectedParameter(e.target.value)}
-            >
-              {parameters.map(param => (
-                <option key={param.id} value={param.id}>
-                  {param.label}
-                </option>
-              ))}
-            </select>
-          </div>
-
           <div className="date-time-group">
             <div className="date-picker-group">
               <FaCalendarAlt className="date-icon" />
@@ -375,136 +348,64 @@ const DataLogs = () => {
           <>
             <div className="table-info">
               <span>Showing {filteredData.length} of {allData.length} records</span>
-              {selectedParameter !== 'all' && (
-                <button
-                  className="delete-parameter-btn"
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    e.preventDefault()
-                    handleDeleteParameter(selectedParameter)
-                  }}
-                  type="button"
-                  title={`Delete all ${getParameterLabel(selectedParameter)} records`}
-                >
-                  <FaTrash />
-                  Delete All {getParameterLabel(selectedParameter)} Data
-                </button>
-              )}
+              <button
+                className="delete-parameter-btn"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  e.preventDefault()
+                  handleDeleteAll()
+                }}
+                type="button"
+                title="Delete all live trends data"
+              >
+                <FaTrash />
+                Delete All Data
+              </button>
             </div>
 
             <table className="data-logs-table">
               <thead>
                 <tr>
-                  <th 
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      handleSort('parameter')
-                    }} 
-                    className="sortable"
-                  >
-                    Parameter
-                    {sortConfig.key === 'parameter' && (
-                      <span className="sort-indicator">
-                        {sortConfig.direction === 'asc' ? ' ↑' : ' ↓'}
-                      </span>
-                    )}
-                  </th>
-                  <th 
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      handleSort('highLevel')
-                    }} 
-                    className="sortable"
-                  >
-                    High Level (HL)
-                    {sortConfig.key === 'highLevel' && (
-                      <span className="sort-indicator">
-                        {sortConfig.direction === 'asc' ? ' ↑' : ' ↓'}
-                      </span>
-                    )}
-                  </th>
-                  <th 
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      handleSort('lowLevel')
-                    }} 
-                    className="sortable"
-                  >
-                    Low Level (LL)
-                    {sortConfig.key === 'lowLevel' && (
-                      <span className="sort-indicator">
-                        {sortConfig.direction === 'asc' ? ' ↑' : ' ↓'}
-                      </span>
-                    )}
-                  </th>
-                  <th 
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      handleSort('currentValue')
-                    }} 
-                    className="sortable"
-                  >
-                    Current Value
-                    {sortConfig.key === 'currentValue' && (
-                      <span className="sort-indicator">
-                        {sortConfig.direction === 'asc' ? ' ↑' : ' ↓'}
-                      </span>
-                    )}
-                  </th>
-                  <th 
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      handleSort('timestamp')
-                    }} 
-                    className="sortable"
-                  >
-                    Timestamp
-                    {sortConfig.key === 'timestamp' && (
-                      <span className="sort-indicator">
-                        {sortConfig.direction === 'asc' ? ' ↑' : ' ↓'}
-                      </span>
-                    )}
-                  </th>
-                  <th>Status</th>
+                  {DATA_LOG_COLUMNS.map(col => (
+                    <th
+                      key={col.key}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleSort(col.key)
+                      }}
+                      className="sortable"
+                    >
+                      {col.label}
+                      {sortConfig.key === col.key && (
+                        <span className="sort-indicator">
+                          {sortConfig.direction === 'asc' ? ' ↑' : ' ↓'}
+                        </span>
+                      )}
+                    </th>
+                  ))}
                 </tr>
               </thead>
               <tbody>
-                {filteredData.map((row, index) => {
-                  const currentValue = parseFloat(row.currentValue || 0)
-                  const highLevel = parseFloat(row.highLevel || 0)
-                  const lowLevel = parseFloat(row.lowLevel || 0)
-                  
-                  // Determine status: above high level = critical (red), near high level (80-100%) = warning (orange), else normal (no highlight)
-                  let status = 'normal'
-                  if (currentValue > highLevel) {
-                    status = 'critical'
-                  } else if (highLevel > 0 && currentValue >= highLevel * 0.8) {
-                    // Near high level: within 80-100% of high level
-                    status = 'warning'
-                  }
-                  
-                  return (
-                    <tr key={index} className={status !== 'normal' ? `data-row ${status}` : 'data-row'}>
-                      <td className="parameter-cell">
-                        <span className="parameter-badge">{getParameterLabel(row.parameter)}</span>
-                      </td>
-                      <td>{highLevel.toFixed(2)}</td>
-                      <td>{lowLevel.toFixed(2)}</td>
-                      <td className="value-cell">
-                        <span className={status !== 'normal' ? `value-badge ${status}` : ''}>
-                          {currentValue.toFixed(2)}
-                        </span>
-                      </td>
-                      <td>{new Date(row.timestamp).toLocaleString()}</td>
-                      <td>
-                        <span className={`status-badge ${status}`}>
-                          {status === 'critical' ? 'Critical' : 
-                           status === 'warning' ? 'Warning' : 'Normal'}
-                        </span>
-                      </td>
+                {filteredData.map((row, index) => (
+                    <tr key={row.id ?? index} className="data-row">
+                      {DATA_LOG_COLUMNS.map(col => {
+                        const v = row[col.key]
+                        if (col.type === 'date') {
+                          return (
+                            <td key={col.key}>
+                              {v ? new Date(v).toLocaleString() : '—'}
+                            </td>
+                          )
+                        }
+                        if (col.type === 'number') {
+                          const num = parseFloat(v)
+                          const display = Number.isNaN(num) ? '—' : num.toFixed(2)
+                          return <td key={col.key} className="value-cell">{display}</td>
+                        }
+                        return <td key={col.key}>{v != null && v !== '' ? String(v) : '—'}</td>
+                      })}
                     </tr>
-                  )
-                })}
+                ))}
               </tbody>
             </table>
           </>

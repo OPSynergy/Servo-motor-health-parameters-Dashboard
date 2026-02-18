@@ -14,6 +14,7 @@ import {
 } from 'chart.js'
 import zoomPlugin from 'chartjs-plugin-zoom'
 import { saveLiveTrend, getHistoricalTrends, getLiveTrends, deleteAllTrendsForParameter } from '../services/liveTrendsApi'
+import { getHealthIndex } from '../services/healthIndexApi'
 import './LiveTrendsGraph.css'
 
 ChartJS.register(
@@ -145,6 +146,22 @@ const LiveTrendsGraph = ({ type }) => {
   useEffect(() => {
     localStorage.setItem(`levels-${type}`, JSON.stringify(levels))
   }, [levels, type])
+
+  // Live MQTT state from backend (last received message) – used for real-time Current Value
+  const [mqttLive, setMqttLive] = useState(null)
+  useEffect(() => {
+    const fetchMqtt = async () => {
+      try {
+        const state = await getHealthIndex()
+        setMqttLive(state)
+      } catch {
+        setMqttLive(null)
+      }
+    }
+    fetchMqtt()
+    const interval = setInterval(fetchMqtt, 500)
+    return () => clearInterval(interval)
+  }, [])
 
   // Live data from live_trends (same as Data Logs) – poll when in live mode (no time option, no time window)
   const [liveApiData, setLiveApiData] = useState([])
@@ -671,7 +688,10 @@ const LiveTrendsGraph = ({ type }) => {
     }
   }), [yAxisRange, selectedTimeOption, currentConfig])
 
-  const currentValue = data.length > 0 ? data[0] : 0
+  // Prefer real-time MQTT state for Current Value so it matches terminal; fallback to latest from live_trends
+  const mqttKey = type === 'power-consumption' ? 'unit_power' : type === 'belt-tension' ? 'belt_tension' : type
+  const mqttVal = mqttLive != null && mqttLive[mqttKey] != null ? Number(mqttLive[mqttKey]) : null
+  const currentValue = mqttVal !== null && !Number.isNaN(mqttVal) ? mqttVal : (data.length > 0 ? data[0] : 0)
   const status = currentValue > levels.HL ? 'critical' : 
                  currentValue < levels.LL ? 'warning' : 'normal'
 
