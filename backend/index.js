@@ -124,13 +124,17 @@ function initializeDatabase() {
   db.exec(`
     CREATE TABLE IF NOT EXISTS alarms (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      type TEXT NOT NULL,
       message TEXT NOT NULL,
       status TEXT NOT NULL DEFAULT 'active',
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       resolved_at DATETIME
     )
   `)
+  const alarmCols = db.prepare('PRAGMA table_info(alarms)').all().map(c => c.name)
+  if (alarmCols.includes('type')) {
+    db.exec('ALTER TABLE alarms DROP COLUMN type')
+    console.log('Migrated alarms: dropped type column')
+  }
   db.exec(`
     CREATE INDEX IF NOT EXISTS idx_alarms_status_created
     ON alarms(status, created_at DESC)
@@ -382,8 +386,8 @@ const liveTrendInsert = db.prepare(`
 `)
 
 const alarmInsert = db.prepare(`
-  INSERT INTO alarms (type, message, status, created_at)
-  VALUES (?, ?, ?, ?)
+  INSERT INTO alarms (message, status, created_at)
+  VALUES (?, ?, ?)
 `)
 
 const motorHealthInsert = db.prepare(`
@@ -611,7 +615,9 @@ app.delete('/api/live-trends', (req, res) => {
 // Alarms API
 app.get('/api/alarms/count', (req, res) => {
   try {
-    const row = db.prepare('SELECT COUNT(*) as count FROM alarms').get()
+    const row = db.prepare(
+      "SELECT COUNT(*) as count FROM alarms WHERE COALESCE(UPPER(TRIM(message)), '') <> 'NORMAL'"
+    ).get()
     res.json({ count: row.count })
   } catch (error) {
     console.error('Error fetching alarm count:', error)
@@ -622,11 +628,10 @@ app.get('/api/alarms/count', (req, res) => {
 app.get('/api/alarms', (req, res) => {
   try {
     const rows = db.prepare(
-      'SELECT id, type, message, status, created_at, resolved_at FROM alarms ORDER BY created_at DESC'
+      "SELECT id, message, status, created_at, resolved_at FROM alarms WHERE COALESCE(UPPER(TRIM(message)), '') <> 'NORMAL' ORDER BY created_at DESC"
     ).all()
     res.json(rows.map(row => ({
       id: row.id,
-      type: row.type,
       message: row.message,
       status: row.status,
       createdAt: row.created_at,
@@ -782,7 +787,7 @@ const server = app.listen(PORT, () => {
 
         if (faultStr !== '' && faultStr.toUpperCase().trim() !== 'NORMAL' && faultStr !== lastFaultForAlarm) {
           lastFaultForAlarm = faultStr
-          alarmInsert.run('Critical', lastFaultForAlarm, 'active', ts)
+          alarmInsert.run(lastFaultForAlarm, 'active', ts)
         }
       } catch (e) {
         console.error('MQTT message handle error:', e.message, 'raw:', raw.slice(0, 200))
@@ -845,7 +850,7 @@ const server = app.listen(PORT, () => {
         if (faultStr !== '' && faultStr.toUpperCase().trim() !== 'NORMAL' && faultStr !== lastFaultForAlarm) {
           lastFaultForAlarm = faultStr
           try {
-            alarmInsert.run('Critical', faultStr, 'active', ts)
+            alarmInsert.run(faultStr, 'active', ts)
           } catch (alarmErr) {
             console.error('[Predictive MQTT] alarm INSERT failed:', alarmErr.message)
           }

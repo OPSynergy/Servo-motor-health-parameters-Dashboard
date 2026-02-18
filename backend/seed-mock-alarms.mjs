@@ -19,20 +19,20 @@ function getLocalTimestamp() {
 }
 
 const insert = db.prepare(`
-  INSERT INTO alarms (type, message, status, created_at, resolved_at)
-  VALUES (?, ?, ?, ?, ?)
+  INSERT INTO alarms (message, status, created_at, resolved_at)
+  VALUES (?, ?, ?, ?)
 `)
 
 const mockAlarms = [
-  { type: 'Critical', message: 'High vibration detected on motor M1', status: 'resolved', resolved: true },
-  { type: 'Critical', message: 'Temperature threshold exceeded', status: 'active', resolved: false },
-  { type: 'Warning', message: 'Power consumption approaching limit', status: 'active', resolved: false },
-  { type: 'Warning', message: 'Belt tension below recommended range', status: 'resolved', resolved: true },
-  { type: 'Warning', message: 'Speed fluctuation detected', status: 'active', resolved: false },
-  { type: 'Info', message: 'Scheduled maintenance due in 5 days', status: 'active', resolved: false },
-  { type: 'Info', message: 'Motor health check completed', status: 'resolved', resolved: true },
-  { type: 'Critical', message: 'Torque limit exceeded', status: 'active', resolved: false },
-  { type: 'Info', message: 'Calibration cycle finished successfully', status: 'resolved', resolved: true }
+  { message: 'High vibration detected on motor M1', status: 'resolved', resolved: true },
+  { message: 'Temperature threshold exceeded', status: 'active', resolved: false },
+  { message: 'Power consumption approaching limit', status: 'active', resolved: false },
+  { message: 'Belt tension below recommended range', status: 'resolved', resolved: true },
+  { message: 'Speed fluctuation detected', status: 'active', resolved: false },
+  { message: 'Scheduled maintenance due in 5 days', status: 'active', resolved: false },
+  { message: 'Motor health check completed', status: 'resolved', resolved: true },
+  { message: 'Torque limit exceeded', status: 'active', resolved: false },
+  { message: 'Calibration cycle finished successfully', status: 'resolved', resolved: true }
 ]
 
 // Optional: offset timestamps so they're not all the same second
@@ -44,7 +44,7 @@ function insertMockAlarms() {
     const created = new Date(now.getTime() - (mockAlarms.length - i) * 60000) // spread over last N minutes
     const createdStr = `${created.getFullYear()}-${String(created.getMonth() + 1).padStart(2, '0')}-${String(created.getDate()).padStart(2, '0')} ${String(created.getHours()).padStart(2, '0')}:${String(created.getMinutes()).padStart(2, '0')}:${String(created.getSeconds()).padStart(2, '0')}`
     const resolvedStr = m.resolved ? getLocalTimestamp() : null
-    insert.run(m.type, m.message, m.status, createdStr, resolvedStr)
+    insert.run(m.message, m.status, createdStr, resolvedStr)
     count++
   }
   return count

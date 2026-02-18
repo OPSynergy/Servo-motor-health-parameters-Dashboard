@@ -1,5 +1,5 @@
 /**
- * Clears all rows from the alarms table.
+ * Clears all rows from the alarms table and drops the type column if present.
  * Run from project root: node backend/clear-alarms.mjs
  */
 
@@ -13,4 +13,11 @@ const db = new Database(dbPath)
 
 const result = db.prepare('DELETE FROM alarms').run()
 console.log('Deleted', result.changes, 'rows from alarms.')
+
+const cols = db.prepare('PRAGMA table_info(alarms)').all().map((c) => c.name)
+if (cols.includes('type')) {
+  db.exec('ALTER TABLE alarms DROP COLUMN type')
+  console.log('Dropped type column from alarms.')
+}
+
 db.close()
