@@ -100,4 +100,27 @@ html, body, #root {
 
 .main-content::-webkit-scrollbar-thumb:hover {
   background: rgba(156, 163, 175, 0.7);
+}
+
+/* Dashboard footer - centrally aligned image */
+.dashboard-footer {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 500;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 16px 24px;
+  pointer-events: none;
+}
+
+.dashboard-footer-img {
+  max-width: min(720px, 55vw);
+  width: auto;
+  height: auto;
+  max-height: 160px;
+  object-fit: contain;
+  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.08));
 } 

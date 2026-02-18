@@ -17,7 +17,7 @@ const Home = () => {
       <div className="home-header-center">
         <h1 className="team-name">TEAM PEGASUS</h1>
         <p className="team-number">MEC2526273</p>
-        <h2 className="topic-name">Predictive Maintenance For Servo Motors</h2>
+        <h2 className="topic-name">Predictive Maintenance For Servo Motor And System.</h2>
       </div>
       
       <div className="home-logo-container-right">

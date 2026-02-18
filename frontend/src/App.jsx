@@ -15,6 +15,7 @@ import DataLogs from './pages/DataLogs'
 import HealthIndexing from './pages/HealthIndexing'
 import PredictiveData from './pages/PredictiveData'
 import NewAlarmsPopup from './components/NewAlarmsPopup'
+import mecaFooter from './assets/meca.png'
 
 function App() {
   const [activePage, setActivePage] = useState('home')
@@ -88,6 +89,11 @@ function App() {
       <main className={`main-content ${sidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
         {renderPage()}
       </main>
+
+      {/* Footer image - centrally aligned */}
+      <footer className="dashboard-footer">
+        <img src={mecaFooter} alt="MECA" className="dashboard-footer-img" />
+      </footer>
     </div>
   )
 }
