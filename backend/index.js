@@ -780,7 +780,7 @@ const server = app.listen(PORT, () => {
           console.error('[MQTT] live_trends INSERT failed:', insertErr.message, insertErr.stack)
         }
 
-        if (faultStr !== '' && faultStr !== lastFaultForAlarm) {
+        if (faultStr !== '' && faultStr.toUpperCase().trim() !== 'NORMAL' && faultStr !== lastFaultForAlarm) {
           lastFaultForAlarm = faultStr
           alarmInsert.run('Critical', lastFaultForAlarm, 'active', ts)
         }
@@ -842,6 +842,14 @@ const server = app.listen(PORT, () => {
         const beltR = round(data.belt ?? data.belt_tension)
         const mhiR = round(data.MHI ?? data.mhi)
         const faultStr = (data.fault != null ? String(data.fault).trim() : '') || ''
+        if (faultStr !== '' && faultStr.toUpperCase().trim() !== 'NORMAL' && faultStr !== lastFaultForAlarm) {
+          lastFaultForAlarm = faultStr
+          try {
+            alarmInsert.run('Critical', faultStr, 'active', ts)
+          } catch (alarmErr) {
+            console.error('[Predictive MQTT] alarm INSERT failed:', alarmErr.message)
+          }
+        }
         try {
           liveTrendInsert.run(torqueR, speedR, powerR, vibrationR, temperatureR, beltR, mhiR, faultStr, ts)
           predictiveMessageCount++

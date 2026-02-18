@@ -1,0 +1,130 @@
+.critical-speed-drop-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(6px);
+  animation: criticalSpeedDropFadeIn 0.25s ease-out;
+}
+
+@keyframes criticalSpeedDropFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.critical-speed-drop-card {
+  position: relative;
+  width: 100%;
+  max-width: 440px;
+  background: #ffffff;
+  border: 3px solid #dc2626;
+  border-radius: 16px;
+  box-shadow:
+    0 25px 50px -12px rgba(220, 38, 38, 0.25),
+    0 0 0 1px rgba(220, 38, 38, 0.1);
+  padding: 0;
+  text-align: center;
+  animation: criticalSpeedDropSlideIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  overflow: hidden;
+}
+
+@keyframes criticalSpeedDropSlideIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(-12px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.critical-speed-drop-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 1.25rem 1.5rem 1rem;
+  background: linear-gradient(180deg, #dc2626 0%, #b91c1c 100%);
+  color: #ffffff;
+}
+
+.critical-speed-drop-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  flex-shrink: 0;
+}
+
+.critical-speed-drop-title {
+  margin: 0;
+  font-size: 1.35rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  color: #ffffff;
+  text-transform: uppercase;
+}
+
+.critical-speed-drop-message {
+  margin: 1.25rem 1.5rem 0.5rem;
+  font-size: 1rem;
+  color: #1f2937;
+  line-height: 1.5;
+  text-align: center;
+}
+
+.critical-speed-drop-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  justify-content: center;
+  align-items: center;
+  margin: 1.25rem 1.5rem 1.5rem;
+}
+
+.critical-speed-drop-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 120px;
+  padding: 0.625rem 1.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #ffffff;
+  background: #dc2626;
+  border: 2px solid #b91c1c;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.critical-speed-drop-btn:hover {
+  background: #b91c1c;
+  border-color: #991b1b;
+}
+
+.critical-speed-drop-btn:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.35);
+}
+
+.critical-speed-drop-btn-mark {
+  background: #ffffff;
+  color: #dc2626;
+  border-color: #dc2626;
+}
+
+.critical-speed-drop-btn-mark:hover {
+  background: #fef2f2;
+  border-color: #b91c1b;
+  color: #b91c1c;
+}

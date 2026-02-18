@@ -15,6 +15,7 @@ import DataLogs from './pages/DataLogs'
 import HealthIndexing from './pages/HealthIndexing'
 import PredictiveData from './pages/PredictiveData'
 import NewAlarmsPopup from './components/NewAlarmsPopup'
+import CriticalSpeedDropPopup from './components/CriticalSpeedDropPopup'
 import mecaFooter from './assets/meca.png'
 
 const PAGES_WITH_MECA_FOOTER = ['home', 'motor-setup', 'missions', 'alarms', 'actions', 'maintenance']
@@ -87,6 +88,8 @@ function App() {
 
       {/* Global popup when new alarms are detected (e.g. after seed script) */}
       <NewAlarmsPopup />
+      {/* Popup when CRITICAL_SPEED_DROP fault is received via MQTT (logged to Alarms table) */}
+      <CriticalSpeedDropPopup />
 
       {/* Layer 3: Content (z-index: 100) */}
       <main className={`main-content ${sidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
