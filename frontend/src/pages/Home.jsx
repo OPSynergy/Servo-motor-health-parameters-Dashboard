@@ -11,6 +11,7 @@ const Home = () => {
           alt="COEP Technological University Logo" 
           className="home-logo"
         />
+        <span className="coep-tech-label">COEP TECH</span>
       </div>
       
       <div className="home-header-center">
