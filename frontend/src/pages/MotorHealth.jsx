@@ -45,7 +45,7 @@ const MotorHealth = () => {
   const [tempMhiSetValue, setTempMhiSetValue] = useState(mhiSetValue)
   const [isEditingMhiValue, setIsEditingMhiValue] = useState(false)
 
-  // Real-time MHI from health-index API (same source as MQTT)
+  // Real-time MHI from health-index API (updated by MQTT: main topic or predictive topic)
   useEffect(() => {
     const fetchMhi = async () => {
       try {
@@ -62,7 +62,7 @@ const MotorHealth = () => {
       }
     }
     fetchMhi()
-    const interval = setInterval(fetchMhi, 2000)
+    const interval = setInterval(fetchMhi, 1000)
     return () => clearInterval(interval)
   }, [])
 
@@ -125,8 +125,9 @@ const MotorHealth = () => {
     }
   }
 
-  // Overall health %: MHI is 0–1, display as 0–100%
-  const overallPercent = mhiData.mhi != null && !Number.isNaN(mhiData.mhi) ? Math.round(mhiData.mhi * 100) : null
+  // Overall health %: MHI from MQTT can be 0–1 or 0–100; normalize to 0–100 for display
+  const rawMhi = mhiData.mhi != null && !Number.isNaN(mhiData.mhi) ? Number(mhiData.mhi) : null
+  const overallPercent = rawMhi != null ? (rawMhi <= 1 ? Math.round(rawMhi * 100) : Math.round(rawMhi)) : null
   const displayPercent = overallPercent != null ? overallPercent : 87
 
   const getHealthColor = (percentage) => {
@@ -136,10 +137,10 @@ const MotorHealth = () => {
     return '#ef4444'
   }
 
-  // MHI color from user-set MHI value (1-100). Live MHI from API is 0-1.
+  // MHI color from user-set MHI value (1-100). Live MHI from API can be 0-1 or 0-100.
   const getMhiColorFromSetValue = (mhi) => {
     if (mhi == null || Number.isNaN(mhi)) return '#6b7280'
-    const mhiPercent = mhi * 100
+    const mhiPercent = mhi <= 1 ? mhi * 100 : mhi
     const threshold = mhiSetValue
     if (mhiPercent >= threshold) return '#10b981'
     if (mhiPercent >= threshold * 0.7) return '#f59e0b'
@@ -291,13 +292,13 @@ const MotorHealth = () => {
               <p className="mhi-value-card-error">{mhiError}</p>
             )}
             <div className="mhi-value-card-header">
-              <span className="mhi-value-card-label">Motor Health Index (MHI)</span>
+              <span className="mhi-value-card-label">Motor Health Index (MHI) — Live from MQTT</span>
               <span
                 className="mhi-value-card-value"
                 style={{ color: mhiColor }}
               >
-                {mhiData.mhi != null && !Number.isNaN(mhiData.mhi)
-                  ? Number(mhiData.mhi).toFixed(3)
+                {overallPercent != null
+                  ? `${overallPercent}%`
                   : '—'}
               </span>
             </div>
@@ -306,7 +307,7 @@ const MotorHealth = () => {
                 ? `Updated ${new Date(mhiData.updatedAt).toLocaleString()}`
                 : mhiData.isFallback
                   ? 'Using default until MQTT sends MHI'
-                  : 'Waiting for data…'}
+                  : 'Waiting for MQTT data…'}
             </p>
 
             <div className="mhi-levels-row">

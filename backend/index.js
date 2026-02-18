@@ -820,6 +820,18 @@ const server = app.listen(PORT, () => {
         predictiveDataBuffer.push({ timestamp: ts, iso, ...data })
         if (predictiveDataBuffer.length > PREDICTIVE_BUFFER_MAX) predictiveDataBuffer.shift()
 
+        // Update mqttState so /api/health-index and Motor Health page show real-time MHI and other params from this topic
+        const mhiVal = data.MHI != null ? Number(data.MHI) : data.mhi != null ? Number(data.mhi) : undefined
+        if (mhiVal !== undefined && !Number.isNaN(mhiVal)) mqttState.mhi = mhiVal
+        if (data.fault != null) mqttState.fault = String(data.fault).trim()
+        if (data.torque != null) mqttState.torque = Number(data.torque)
+        if (data.speed != null) mqttState.speed = Number(data.speed)
+        if (data.power != null) mqttState.unit_power = Number(data.power)
+        if (data.vibration != null) mqttState.vibration = Number(data.vibration)
+        if (data.temperature != null) mqttState.temperature = Number(data.temperature)
+        if (data.belt != null) mqttState.belt_tension = Number(data.belt)
+        mqttState.updatedAt = ts
+
         // Save to live_trends (same columns as main MQTT: torque, speed, power, vibration, temperature, belt, mhi, fault)
         const round = (v) => (v != null && !Number.isNaN(Number(v))) ? Math.round(Number(v) * 100) / 100 : 0
         const torqueR = round(data.torque)
