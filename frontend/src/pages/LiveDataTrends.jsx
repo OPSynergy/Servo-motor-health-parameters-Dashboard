@@ -64,7 +64,7 @@ const LiveDataTrends = () => {
     {
       id: 'torque',
       title: 'Torque',
-      unit: 'Percent',
+      unit: '%',
       icon: FaCog,
       color: '#06b6d4',
       data: generateChartData(15, 1.5),

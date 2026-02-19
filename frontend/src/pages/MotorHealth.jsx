@@ -21,7 +21,7 @@ const LIVE_PARAMS = [
   { id: 'power-consumption', label: 'Power Consumption', unit: 'Watts', icon: FaBolt, color: '#10b981' },
   { id: 'belt-tension', label: 'Belt Tension', unit: 'Newton', icon: FaLink, color: '#f59e0b' },
   { id: 'speed', label: 'Speed', unit: 'RPM', icon: FaTachometerAlt, color: '#8b5cf6' },
-  { id: 'torque', label: 'Torque', unit: 'Percent', icon: FaCog, color: '#06b6d4' }
+  { id: 'torque', label: 'Torque', unit: '%', icon: FaCog, color: '#06b6d4' }
 ]
 
 const MHI_SET_VALUE_KEY = 'mhi-set-value'

@@ -71,7 +71,7 @@ const LiveTrendsGraph = ({ type }) => {
     },
     torque: {
       title: 'Torque',
-      unit: 'Percent',
+      unit: '%',
       color: '#06b6d4',
       defaultHL: 90,
       defaultLL: 25
