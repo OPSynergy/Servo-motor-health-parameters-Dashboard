@@ -149,6 +149,17 @@ const MotorHealth = () => {
 
   const mhiColor = mhiData.mhi != null ? getMhiColorFromSetValue(mhiData.mhi) : getHealthColor(overallPercent)
 
+  // Motor health status label from MHI (0–100): 90–100 Excellent, 60–89 Good, 50–59 Fair, <50 Poor
+  const getMotorHealthStatus = (percent) => {
+    if (percent == null || Number.isNaN(percent)) return { label: '—', color: '#6b7280' }
+    const p = percent <= 1 ? percent * 100 : percent
+    if (p >= 90) return { label: 'Excellent', color: '#059669' }
+    if (p >= 60) return { label: 'Good', color: '#10b981' }
+    if (p >= 50) return { label: 'Fair', color: '#f59e0b' }
+    return { label: 'Poor', color: '#ef4444' }
+  }
+  const motorHealthStatus = getMotorHealthStatus(overallPercent)
+
   const getStatusBadge = (status) => {
     const badges = {
       excellent: { color: '#10b981', bg: '#f0fdf4', icon: FaCheckCircle },
@@ -262,8 +273,8 @@ const MotorHealth = () => {
             <div className="health-visualization">
               <CircularProgress 
                 percentage={displayPercent} 
-                size={220}
-                strokeWidth={14}
+                size={160}
+                strokeWidth={12}
                 color={mhiColor}
               />
               <div className="health-details">
@@ -287,70 +298,81 @@ const MotorHealth = () => {
             </div>
           </div>
 
-          <div className="mhi-value-card">
-            {mhiError && (
-              <p className="mhi-value-card-error">{mhiError}</p>
-            )}
-            <div className="mhi-value-card-header">
-              <span className="mhi-value-card-label">Motor Health Index (MHI) — Live from MQTT</span>
-              <span
-                className="mhi-value-card-value"
-                style={{ color: mhiColor }}
-              >
-                {overallPercent != null
-                  ? `${overallPercent}%`
-                  : '—'}
-              </span>
-            </div>
-            <p className="mhi-value-card-updated">
-              {mhiData.updatedAt
-                ? `Updated ${new Date(mhiData.updatedAt).toLocaleString()}`
-                : mhiData.isFallback
-                  ? 'Using default until MQTT sends MHI'
-                  : 'Waiting for MQTT data…'}
-            </p>
-
-            <div className="mhi-levels-row">
-              <div className="mhi-level-item mhi-level-editable">
-                <span className="mhi-level-label">Set MHI Value:</span>
-                <div className="mhi-level-value-wrap">
-                  {isEditingMhiValue ? (
-                    <>
-                      <input
-                        type="number"
-                        className="mhi-level-input"
-                        min="1"
-                        max="100"
-                        step="1"
-                        value={tempMhiSetValue}
-                        onChange={(e) => setTempMhiSetValue(e.target.value)}
-                        onKeyDown={(e) => e.key === 'Enter' && handleSetMhiValue()}
-                        autoFocus
-                      />
-                      <button type="button" className="mhi-set-btn" onClick={handleSetMhiValue}>Set</button>
-                      <button
-                        type="button"
-                        className="mhi-cancel-btn"
-                        onClick={() => { setTempMhiSetValue(mhiSetValue); setIsEditingMhiValue(false) }}
-                      >
-                        ✕
-                      </button>
-                    </>
-                  ) : (
-                    <span className="mhi-level-value">{Number(mhiSetValue) % 1 === 0 ? mhiSetValue : mhiSetValue.toFixed(1)}</span>
+          <div className="mhi-cards-row">
+            <div className="mhi-value-card">
+              {mhiError && (
+                <p className="mhi-value-card-error">{mhiError}</p>
+              )}
+              <div className="mhi-value-card-header">
+                <span className="mhi-value-card-label">Motor Health Index (MHI)</span>
+                <span
+                  className="mhi-value-card-value"
+                  style={{ color: mhiColor }}
+                >
+                  {overallPercent != null
+                    ? `${overallPercent}%`
+                    : '—'}
+                </span>
+              </div>
+              <p className="mhi-value-card-updated">
+                {mhiData.updatedAt
+                  ? new Date(mhiData.updatedAt).toLocaleString()
+                  : mhiData.isFallback ? 'Default' : 'Waiting…'}
+              </p>
+              <div className="mhi-levels-row">
+                <div className="mhi-level-item mhi-level-editable">
+                  <span className="mhi-level-label">Set MHI:</span>
+                  <div className="mhi-level-value-wrap">
+                    {isEditingMhiValue ? (
+                      <>
+                        <input
+                          type="number"
+                          className="mhi-level-input"
+                          min="1"
+                          max="100"
+                          step="1"
+                          value={tempMhiSetValue}
+                          onChange={(e) => setTempMhiSetValue(e.target.value)}
+                          onKeyDown={(e) => e.key === 'Enter' && handleSetMhiValue()}
+                          autoFocus
+                        />
+                        <button type="button" className="mhi-set-btn" onClick={handleSetMhiValue}>Set</button>
+                        <button
+                          type="button"
+                          className="mhi-cancel-btn"
+                          onClick={() => { setTempMhiSetValue(mhiSetValue); setIsEditingMhiValue(false) }}
+                        >
+                          ✕
+                        </button>
+                      </>
+                    ) : (
+                      <span className="mhi-level-value">{Number(mhiSetValue) % 1 === 0 ? mhiSetValue : mhiSetValue.toFixed(1)}</span>
+                    )}
+                  </div>
+                  {!isEditingMhiValue && (
+                    <button
+                      type="button"
+                      className="mhi-edit-btn"
+                      onClick={() => setIsEditingMhiValue(true)}
+                      title="Edit MHI Value"
+                    >
+                      <FaPencilAlt />
+                    </button>
                   )}
                 </div>
-                {!isEditingMhiValue && (
-                  <button
-                    type="button"
-                    className="mhi-edit-btn"
-                    onClick={() => setIsEditingMhiValue(true)}
-                    title="Edit MHI Value"
-                  >
-                    <FaPencilAlt />
-                  </button>
-                )}
               </div>
+            </div>
+            <div className="mhi-status-card">
+              <span className="mhi-status-card-label">Status</span>
+              <span
+                className="mhi-status-card-value"
+                style={{ color: motorHealthStatus.color }}
+              >
+                {motorHealthStatus.label}
+              </span>
+              <p className="mhi-status-card-hint">
+                90–100 Excellent, 60–89 Good, 50–59 Fair, &lt;50 Poor
+              </p>
             </div>
           </div>
         </div>

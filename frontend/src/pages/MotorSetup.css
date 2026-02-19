@@ -15,7 +15,8 @@
 
 .motor-setup-content {
   max-width: 1400px;
-  margin: 0 auto;
+  margin: 0;
+  text-align: left;
 }
 
 .motor-setup-title {
@@ -23,6 +24,7 @@
   font-weight: 700;
   color: #111827;
   margin-bottom: 40px;
+  text-align: left;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Helvetica Neue", Arial, sans-serif;
 }
 
@@ -105,6 +107,7 @@
   font-weight: 600;
   color: #111827;
   margin-bottom: 20px;
+  text-align: left;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Helvetica Neue", Arial, sans-serif;
 }
 
@@ -340,20 +343,23 @@
 /* Motors Section */
 .motors-section {
   margin-top: 40px;
+  text-align: left;
 }
 
 .motors-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
   gap: 32px;
+  justify-items: start;
 }
 
 /* Motor Item Container */
 .motor-item {
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: flex-start;
   width: 100%;
+  max-width: 100%;
   position: relative;
 }
 
@@ -378,7 +384,8 @@
   font-size: 16px;
   font-weight: 600;
   color: #111827;
-  text-align: center;
+  text-align: left;
+  width: 100%;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Helvetica Neue", Arial, sans-serif;
   width: 100%;
 }
