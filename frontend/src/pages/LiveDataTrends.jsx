@@ -64,7 +64,7 @@ const LiveDataTrends = () => {
     {
       id: 'torque',
       title: 'Torque',
-      unit: 'Nm',
+      unit: 'Percent',
       icon: FaCog,
       color: '#06b6d4',
       data: generateChartData(15, 1.5),
@@ -94,7 +94,7 @@ const LiveDataTrends = () => {
     {
       id: 'powerConsumption',
       title: 'Power Consumption',
-      unit: 'Wh',
+      unit: 'Watts',
       icon: FaBolt,
       color: '#f59e0b',
       data: generateChartData(1250, 100),
@@ -104,7 +104,7 @@ const LiveDataTrends = () => {
     {
       id: 'beltTension',
       title: 'Belt Tension',
-      unit: 'N',
+      unit: 'Newton',
       icon: FaLink,
       color: '#ec4899',
       data: generateChartData(850, 60),

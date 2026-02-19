@@ -17,12 +17,12 @@ import './Page.css'
 
 // Same 6 parameters as Live Trends: vibration, temperature, power-consumption, belt-tension, speed, torque
 const LIVE_PARAMS = [
-  { id: 'vibration', label: 'Vibration', unit: 'mm/s', icon: FaTachometerAlt, color: '#3b82f6' },
+  { id: 'vibration', label: 'Vibration', unit: 'mm/s²', icon: FaTachometerAlt, color: '#3b82f6' },
   { id: 'temperature', label: 'Temperature', unit: '°C', icon: FaTemperatureHigh, color: '#ef4444' },
-  { id: 'power-consumption', label: 'Power Consumption', unit: 'W', icon: FaBolt, color: '#10b981' },
-  { id: 'belt-tension', label: 'Belt Tension', unit: '', icon: FaLink, color: '#f59e0b' },
+  { id: 'power-consumption', label: 'Power Consumption', unit: 'Watts', icon: FaBolt, color: '#10b981' },
+  { id: 'belt-tension', label: 'Belt Tension', unit: 'Newton', icon: FaLink, color: '#f59e0b' },
   { id: 'speed', label: 'Speed', unit: 'RPM', icon: FaTachometerAlt, color: '#8b5cf6' },
-  { id: 'torque', label: 'Torque', unit: 'Nm', icon: FaCog, color: '#06b6d4' }
+  { id: 'torque', label: 'Torque', unit: 'Percent', icon: FaCog, color: '#06b6d4' }
 ]
 
 const MHI_SET_VALUE_KEY = 'mhi-set-value'

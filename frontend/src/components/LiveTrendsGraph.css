@@ -89,6 +89,13 @@
     color: #dc2626;
   }
   
+  .stat-value-unit {
+    font-size: 0.7em;
+    font-weight: 600;
+    opacity: 0.95;
+    margin-left: 6px;
+  }
+  
   .level-input {
     width: 80px;
     padding: 8px 12px;

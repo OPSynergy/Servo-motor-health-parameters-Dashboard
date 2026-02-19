@@ -32,40 +32,46 @@ ChartJS.register(
 const LiveTrendsGraph = ({ type }) => {
   const chartRef = useRef(null)
   
-  // Initial configuration for colors and titles
+  // Initial configuration for colors, titles, and units
   const config = {
     vibration: {
       title: 'Vibration Analysis',
+      unit: 'mm/s²',
       color: '#3b82f6',
       defaultHL: 80,
       defaultLL: 30
     },
     temperature: {
       title: 'Temperature Monitoring',
+      unit: '°C',
       color: '#ef4444',
       defaultHL: 85,
       defaultLL: 35
     },
     'power-consumption': {
       title: 'Power Consumption',
+      unit: 'Watts',
       color: '#10b981',
       defaultHL: 75,
       defaultLL: 25
     },
     'belt-tension': {
       title: 'Belt Tension',
+      unit: 'Newton',
       color: '#f59e0b',
       defaultHL: 90,
       defaultLL: 40
     },
     speed: {
       title: 'Speed',
+      unit: 'RPM',
       color: '#8b5cf6',
       defaultHL: 95,
       defaultLL: 20
     },
     torque: {
       title: 'Torque',
+      unit: 'Percent',
       color: '#06b6d4',
       defaultHL: 90,
       defaultLL: 25
@@ -707,6 +713,9 @@ const LiveTrendsGraph = ({ type }) => {
               style={{ color: currentConfig.color }}
             >
               {currentValue.toFixed(2)}
+              {currentConfig.unit && (
+                <span className="stat-value-unit"> {currentConfig.unit}</span>
+              )}
             </span>
           </div>
 
