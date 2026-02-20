@@ -11,15 +11,22 @@ export default function CriticalSpeedDropPopup() {
   const [visible, setVisible] = useState(false)
   const [alarm, setAlarm] = useState(null)
   const lastShownIdRef = useRef(null)
+  const maxAlarmIdAtLoadRef = useRef(null)
 
   useEffect(() => {
     const checkAlarms = async () => {
       try {
         const list = await getAlarms()
+        const maxId = list.length > 0 ? Math.max(...list.map((a) => a.id || 0)) : 0
+        if (maxAlarmIdAtLoadRef.current === null) {
+          maxAlarmIdAtLoadRef.current = maxId
+          return
+        }
         const criticalSpeedDrop = list.find(
           (a) => a.message && String(a.message).trim().toUpperCase() === FAULT_MESSAGE
         )
-        if (criticalSpeedDrop && criticalSpeedDrop.id !== lastShownIdRef.current) {
+        const isNewSinceLoad = criticalSpeedDrop && criticalSpeedDrop.id > maxAlarmIdAtLoadRef.current
+        if (isNewSinceLoad && criticalSpeedDrop.id !== lastShownIdRef.current) {
           setAlarm(criticalSpeedDrop)
           setVisible(true)
           lastShownIdRef.current = criticalSpeedDrop.id
@@ -28,8 +35,8 @@ export default function CriticalSpeedDropPopup() {
         // ignore
       }
     }
-    checkAlarms()
     const intervalId = setInterval(checkAlarms, POLL_INTERVAL_MS)
+    checkAlarms()
     return () => clearInterval(intervalId)
   }, [])
 
