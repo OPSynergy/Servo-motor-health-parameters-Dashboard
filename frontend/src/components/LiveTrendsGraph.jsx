@@ -36,7 +36,7 @@ const LiveTrendsGraph = ({ type }) => {
   const config = {
     vibration: {
       title: 'Vibration Analysis',
-      unit: 'mm/s²',
+      unit: 'mm/s',
       color: '#3b82f6',
       defaultHL: 80,
       defaultLL: 30

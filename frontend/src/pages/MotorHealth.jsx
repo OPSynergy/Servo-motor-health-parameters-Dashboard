@@ -16,7 +16,7 @@ import './Page.css'
 
 // Same 6 parameters as Live Trends: vibration, temperature, power-consumption, belt-tension, speed, torque
 const LIVE_PARAMS = [
-  { id: 'vibration', label: 'Vibration', unit: 'mm/s²', icon: FaTachometerAlt, color: '#3b82f6' },
+  { id: 'vibration', label: 'Vibration', unit: 'mm/s', icon: FaTachometerAlt, color: '#3b82f6' },
   { id: 'temperature', label: 'Temperature', unit: '°C', icon: FaTemperatureHigh, color: '#ef4444' },
   { id: 'power-consumption', label: 'Power Consumption', unit: 'Watts', icon: FaBolt, color: '#10b981' },
   { id: 'belt-tension', label: 'Belt Tension', unit: 'Newton', icon: FaLink, color: '#f59e0b' },

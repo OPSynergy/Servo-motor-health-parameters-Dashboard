@@ -54,7 +54,7 @@ const LiveDataTrends = () => {
     {
       id: 'vibration',
       title: 'Vibration',
-      unit: 'mm/s²',
+      unit: 'mm/s',
       icon: FaWaveSquare,
       color: '#8b5cf6',
       data: generateChartData(2.5, 0.4),
