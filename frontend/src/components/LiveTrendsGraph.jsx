@@ -165,7 +165,7 @@ const LiveTrendsGraph = ({ type }) => {
       }
     }
     fetchMqtt()
-    const interval = setInterval(fetchMqtt, 500)
+    const interval = setInterval(fetchMqtt, 2000)
     return () => clearInterval(interval)
   }, [])
 
@@ -374,17 +374,6 @@ const LiveTrendsGraph = ({ type }) => {
     }
   }, [startTime, endTime, selectedTimeOption, type])
 
-  // Update chart key when graphData changes for historical data to force re-render
-  useEffect(() => {
-    if ((selectedTimeOption || startTime || endTime) && graphData.length > 0 && !loadingHistorical) {
-      // Use a small delay to ensure graphData has been fully processed
-      const timeoutId = setTimeout(() => {
-        setChartKey(prev => prev + 1)
-      }, 100)
-      return () => clearTimeout(timeoutId)
-    }
-  }, [graphData.length, selectedTimeOption, loadingHistorical, historicalData.length, startTime, endTime])
-
   const handleSetHL = async () => {
     const value = parseFloat(tempHL)
     if (!isNaN(value) && value > levels.LL) {
@@ -575,6 +564,8 @@ const LiveTrendsGraph = ({ type }) => {
   const options = useMemo(() => ({
     responsive: true,
     maintainAspectRatio: false,
+    animation: false,
+    transitions: { active: { animation: { duration: 0 } } },
     plugins: {
       legend: {
         display: true,
@@ -921,11 +912,11 @@ const LiveTrendsGraph = ({ type }) => {
         {finalData.length > 0 ? (
           <Line 
             ref={chartRef}
-            key={`${type}-${selectedTimeOption || 'live'}-${finalData.length}-${graphData.length}-${yAxisRange.min.toFixed(2)}-${yAxisRange.max.toFixed(2)}-${chartKey}`}
+            key={`chart-${type}-${selectedTimeOption || 'live'}-${chartKey}`}
             data={chartData} 
             options={options} 
-            redraw={true}
-            updateMode="default"
+            redraw={false}
+            updateMode="none"
           />
         ) : (
           <div style={{ 
