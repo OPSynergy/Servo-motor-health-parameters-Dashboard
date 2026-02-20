@@ -1,4 +1,4 @@
-import { useCallback } from 'react'
+import { useCallback, useState, useRef, useEffect } from 'react'
 import { Canvas } from '@react-three/fiber'
 import { OrbitControls, useGLTF, Grid } from '@react-three/drei'
 import { Suspense } from 'react'
@@ -8,16 +8,42 @@ function Model() {
   return (
     <primitive
       object={scene}
-      scale={0.007}
-      position={[0, -1.5, 0]}
+      scale={0.009}
+      position={[0, -2.5, 0]}
       rotation={[-Math.PI / 2, 0, 0]}
     />
   )
 }
 
+const AUTO_ROTATE_RESUME_MS = 4000
+
 export default function Hero3D() {
+  const [autoRotate, setAutoRotate] = useState(true)
+  const resumeTimeoutRef = useRef(null)
+
   const setControlsRef = useCallback((ctrl) => {
     if (ctrl) ctrl.zoomToCursor = true
+  }, [])
+
+  useEffect(() => {
+    return () => {
+      if (resumeTimeoutRef.current) clearTimeout(resumeTimeoutRef.current)
+    }
+  }, [])
+
+  const handleInteractionStart = useCallback(() => {
+    setAutoRotate(false)
+    if (resumeTimeoutRef.current) {
+      clearTimeout(resumeTimeoutRef.current)
+      resumeTimeoutRef.current = null
+    }
+  }, [])
+
+  const handleInteractionEnd = useCallback(() => {
+    resumeTimeoutRef.current = setTimeout(() => {
+      setAutoRotate(true)
+      resumeTimeoutRef.current = null
+    }, AUTO_ROTATE_RESUME_MS)
   }, [])
 
   return (
@@ -100,6 +126,10 @@ export default function Hero3D() {
             enableDamping
             dampingFactor={0.08}
             zoomSpeed={0.8}
+            autoRotate={autoRotate}
+            autoRotateSpeed={0.8}
+            onStart={handleInteractionStart}
+            onEnd={handleInteractionEnd}
           />
         </Suspense>
       </Canvas>
