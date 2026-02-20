@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { getLiveTrends, deleteAllTrendsForParameter } from '../services/liveTrendsApi'
 import { FaTrash, FaDownload, FaCalendarAlt, FaClock, FaSearch } from 'react-icons/fa'
 import './DataLogs.css'
@@ -25,26 +25,30 @@ const DataLogs = () => {
   const [activeDateFilter, setActiveDateFilter] = useState('')
   const [activeTimeFilter, setActiveTimeFilter] = useState({ hours: '', minutes: '', period: 'AM' })
   const [sortConfig, setSortConfig] = useState({ key: 'timestamp', direction: 'desc' })
+  const initialLoadRef = useRef(true)
 
-  // Fetch data logs on mount and refresh every 3s so new MQTT data (e.g. vibration) appears
+  // Fetch data logs on mount and refresh every 4s so new MQTT data appears (smooth in-place update, no loading flash)
   useEffect(() => {
     fetchDataLogs()
-    const interval = setInterval(fetchDataLogs, 3000)
+    const interval = setInterval(fetchDataLogs, 4000)
     return () => clearInterval(interval)
   }, [])
 
   const fetchDataLogs = async () => {
-    try {
+    const isInitial = initialLoadRef.current
+    if (isInitial) {
+      initialLoadRef.current = false
       setLoading(true)
-      // Fetch all data (use -1 to indicate no limit)
-      const data = await getLiveTrends(null, -1) // -1 means fetch all records
+    }
+    try {
+      const data = await getLiveTrends(null, -1)
       setAllData(data)
       setFilteredData(data)
     } catch (error) {
       console.error('Error fetching data logs:', error)
-      alert('Failed to fetch data logs. Please try again.')
+      if (isInitial) alert('Failed to fetch data logs. Please try again.')
     } finally {
-      setLoading(false)
+      if (isInitial) setLoading(false)
     }
   }
 
