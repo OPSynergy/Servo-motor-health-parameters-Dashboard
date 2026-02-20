@@ -66,6 +66,18 @@ html, body, #root {
   box-sizing: border-box;
 }
 
+/* Maintenance page: completely white background, full width (no gap on right) */
+.main-content .maintenance-page {
+  pointer-events: auto;
+  background: #ffffff !important;
+  min-height: 100%;
+  max-width: none !important;
+  width: 100% !important;
+  margin: 0 !important;
+  padding: 32px 40px 40px !important;
+  box-sizing: border-box;
+}
+
 /* Motor Health page: completely white background and layout, fit viewport no scroll */
 .main-content .motor-health-page {
   pointer-events: auto;

@@ -28,6 +28,11 @@
   position: relative;
 }
 
+.page-container.maintenance-page {
+  max-width: none;
+  margin: 0;
+}
+
 .home-logo-container {
   position: fixed;
   top: 20px;

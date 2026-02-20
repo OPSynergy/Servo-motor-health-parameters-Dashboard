@@ -9,7 +9,7 @@ const Maintenance = () => {
   ]
 
   return (
-    <div className="page-container">
+    <div className="page-container maintenance-page">
       <h1 className="page-title">Maintenance</h1>
       <div className="page-content">
         <div className="card">
