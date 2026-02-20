@@ -10,6 +10,7 @@ import {
   FaCog,
   FaLink
 } from 'react-icons/fa'
+import { useMotor } from '../context/MotorContext'
 import { getHealthIndex } from '../services/healthIndexApi'
 import { getLatestTrends } from '../services/liveTrendsApi'
 import './Page.css'
@@ -37,10 +38,15 @@ const getInitialMhiSetValue = () => {
 }
 
 const MotorHealth = () => {
+  const { selectedMotor } = useMotor()
   const [mhiData, setMhiData] = useState({ mhi: null, updatedAt: null, isFallback: false })
   const [mhiError, setMhiError] = useState(null)
   const [liveParams, setLiveParams] = useState({}) // { [paramId]: { currentValue, highLevel, lowLevel, timestamp } }
   const [mhiSetValue] = useState(getInitialMhiSetValue)
+
+  const addedOnSystem = selectedMotor?.createdAt
+    ? new Date(selectedMotor.createdAt).toLocaleString()
+    : '—'
 
   // Real-time MHI from health-index API (updated by MQTT: main topic or predictive topic)
   useEffect(() => {
@@ -264,8 +270,8 @@ const MotorHealth = () => {
                   </span>
                 </div>
                 <div className="health-detail-item">
-                  <span className="health-detail-label">Uptime</span>
-                  <span className="health-detail-value">98.5%</span>
+                  <span className="health-detail-label">Added on system</span>
+                  <span className="health-detail-value">{addedOnSystem}</span>
                 </div>
                 <div className="health-detail-item">
                   <span className="health-detail-label">Maintenance</span>

@@ -184,7 +184,8 @@ app.get('/api/motors', (req, res) => {
       highLevel: motor.high_level || null,
       lowLevel: motor.low_level || null,
       imageUrl: motor.image_url,
-      isDefault: motor.is_default === 1
+      isDefault: motor.is_default === 1,
+      createdAt: motor.created_at || null
     })))
   } catch (error) {
     console.error('Error fetching motors:', error)
@@ -208,7 +209,8 @@ app.get('/api/motors/:id', (req, res) => {
       highLevel: motor.high_level || null,
       lowLevel: motor.low_level || null,
       imageUrl: motor.image_url,
-      isDefault: motor.is_default === 1
+      isDefault: motor.is_default === 1,
+      createdAt: motor.created_at || null
     })
   } catch (error) {
     console.error('Error fetching motor:', error)
@@ -244,7 +246,8 @@ app.post('/api/motors', (req, res) => {
       highLevel: motor.high_level || null,
       lowLevel: motor.low_level || null,
       imageUrl: motor.image_url,
-      isDefault: motor.is_default === 1
+      isDefault: motor.is_default === 1,
+      createdAt: motor.created_at || null
     })
   } catch (error) {
     console.error('Error creating motor:', error)
@@ -286,7 +289,8 @@ app.put('/api/motors/:id', (req, res) => {
       highLevel: motor.high_level || null,
       lowLevel: motor.low_level || null,
       imageUrl: motor.image_url,
-      isDefault: motor.is_default === 1
+      isDefault: motor.is_default === 1,
+      createdAt: motor.created_at || null
     })
   } catch (error) {
     console.error('Error updating motor:', error)
