@@ -59,6 +59,7 @@ const Alarms = () => {
                 <tr>
                   <th>Id</th>
                   <th>Message</th>
+                  <th>Topic</th>
                   <th>Status</th>
                   <th>Created At</th>
                   <th>Resolved At</th>
@@ -67,13 +68,14 @@ const Alarms = () => {
               <tbody>
                 {alarms.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="alarms-empty">No alarms</td>
+                    <td colSpan={6} className="alarms-empty">No alarms</td>
                   </tr>
                 ) : (
                   alarms.map((row) => (
                     <tr key={row.id}>
                       <td>{row.id}</td>
                       <td>{row.message}</td>
+                      <td>{row.topic ?? '—'}</td>
                       <td>{row.status}</td>
                       <td>{formatDate(row.createdAt)}</td>
                       <td>{formatDate(row.resolvedAt)}</td>

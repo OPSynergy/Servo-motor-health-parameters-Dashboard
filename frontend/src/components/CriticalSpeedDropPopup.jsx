@@ -66,6 +66,11 @@ export default function CriticalSpeedDropPopup() {
         <p className="critical-speed-drop-message">
           A critical speed drop has been detected from the motor. This event has been logged to the Alarms.
         </p>
+        {alarm?.topic && (
+          <p className="critical-speed-drop-topic" aria-label="Alarm topic">
+            <strong>Topic:</strong> {alarm.topic}
+          </p>
+        )}
         <div className="critical-speed-drop-actions">
           <button type="button" className="critical-speed-drop-btn critical-speed-drop-btn-mark" onClick={handleClose}>
             Mark &amp; keep monitoring

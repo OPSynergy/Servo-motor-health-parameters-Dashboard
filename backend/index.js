@@ -127,13 +127,18 @@ function initializeDatabase() {
       message TEXT NOT NULL,
       status TEXT NOT NULL DEFAULT 'active',
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      resolved_at DATETIME
+      resolved_at DATETIME,
+      topic TEXT
     )
   `)
   const alarmCols = db.prepare('PRAGMA table_info(alarms)').all().map(c => c.name)
   if (alarmCols.includes('type')) {
     db.exec('ALTER TABLE alarms DROP COLUMN type')
     console.log('Migrated alarms: dropped type column')
+  }
+  if (!alarmCols.includes('topic')) {
+    db.exec('ALTER TABLE alarms ADD COLUMN topic TEXT')
+    console.log('Migrated alarms: added topic column')
   }
   db.exec(`
     CREATE INDEX IF NOT EXISTS idx_alarms_status_created
@@ -390,8 +395,8 @@ const liveTrendInsert = db.prepare(`
 `)
 
 const alarmInsert = db.prepare(`
-  INSERT INTO alarms (message, status, created_at)
-  VALUES (?, ?, ?)
+  INSERT INTO alarms (message, status, created_at, topic)
+  VALUES (?, ?, ?, ?)
 `)
 
 const motorHealthInsert = db.prepare(`
@@ -632,14 +637,15 @@ app.get('/api/alarms/count', (req, res) => {
 app.get('/api/alarms', (req, res) => {
   try {
     const rows = db.prepare(
-      "SELECT id, message, status, created_at, resolved_at FROM alarms WHERE COALESCE(UPPER(TRIM(message)), '') <> 'NORMAL' ORDER BY created_at DESC"
+      "SELECT id, message, status, created_at, resolved_at, topic FROM alarms WHERE COALESCE(UPPER(TRIM(message)), '') <> 'NORMAL' ORDER BY created_at DESC"
     ).all()
     res.json(rows.map(row => ({
       id: row.id,
       message: row.message,
       status: row.status,
       createdAt: row.created_at,
-      resolvedAt: row.resolved_at
+      resolvedAt: row.resolved_at,
+      topic: row.topic || null
     })))
   } catch (error) {
     console.error('Error fetching alarms:', error)
@@ -722,15 +728,33 @@ const server = app.listen(PORT, () => {
 
   try {
     const client = mqtt.connect(MQTT_URL, { reconnectPeriod: 5000 })
+    const MQTT_FAULT_TOPIC = process.env.MQTT_FAULT_TOPIC || ''
     client.on('connect', () => {
       console.log(`MQTT connected to ${MQTT_URL}`)
-      client.subscribe(MQTT_TOPIC, (err) => {
+      const topics = [MQTT_TOPIC]
+      if (MQTT_FAULT_TOPIC) topics.push(MQTT_FAULT_TOPIC)
+      client.subscribe(topics, (err) => {
         if (err) console.error('MQTT subscribe error:', err)
-        else console.log(`MQTT subscribed to topic: ${MQTT_TOPIC}`)
+        else console.log(`MQTT subscribed to: ${topics.join(', ')}`)
       })
     })
     let mqttMessageCount = 0
     client.on('message', (topic, payload) => {
+      const faultTopic = process.env.MQTT_FAULT_TOPIC || ''
+      if (faultTopic && topic === faultTopic) {
+        const ts = getLocalTimestamp()
+        const message = (payload && typeof payload.toString === 'function') ? payload.toString() : String(payload || '')
+        const msgTrim = message.trim()
+        if (msgTrim !== '' && msgTrim.toUpperCase() !== 'NORMAL') {
+          try {
+            alarmInsert.run(msgTrim, 'active', ts, topic)
+            if (process.env.DEBUG_MQTT === '1') console.log('[MQTT] alarm from fault topic:', topic, msgTrim)
+          } catch (alarmErr) {
+            console.error('[MQTT] alarm INSERT from fault topic failed:', alarmErr.message)
+          }
+        }
+        return
+      }
       mqttMessageCount++
       if (process.env.DEBUG_MQTT === '1' || mqttMessageCount <= 3) {
         console.log('[MQTT] message #' + mqttMessageCount + ' on topic:', topic, 'length:', payload?.length ?? 0)
@@ -789,9 +813,15 @@ const server = app.listen(PORT, () => {
           console.error('[MQTT] live_trends INSERT failed:', insertErr.message, insertErr.stack)
         }
 
-        if (faultStr !== '' && faultStr.toUpperCase().trim() !== 'NORMAL' && faultStr !== lastFaultForAlarm) {
+        if (faultStr === '' || faultStr.toUpperCase().trim() === 'NORMAL') {
+          lastFaultForAlarm = ''
+        } else if (faultStr !== lastFaultForAlarm) {
           lastFaultForAlarm = faultStr
-          alarmInsert.run(lastFaultForAlarm, 'active', ts)
+          try {
+            alarmInsert.run(lastFaultForAlarm, 'active', ts, topic || MQTT_TOPIC)
+          } catch (alarmErr) {
+            console.error('[MQTT] alarm INSERT failed:', alarmErr.message)
+          }
         }
       } catch (e) {
         console.error('MQTT message handle error:', e.message, 'raw:', raw.slice(0, 200))
@@ -851,10 +881,12 @@ const server = app.listen(PORT, () => {
         const beltR = round(data.belt ?? data.belt_tension)
         const mhiR = round(data.MHI ?? data.mhi)
         const faultStr = (data.fault != null ? String(data.fault).trim() : '') || ''
-        if (faultStr !== '' && faultStr.toUpperCase().trim() !== 'NORMAL' && faultStr !== lastFaultForAlarm) {
+        if (faultStr === '' || faultStr.toUpperCase().trim() === 'NORMAL') {
+          lastFaultForAlarm = ''
+        } else if (faultStr !== lastFaultForAlarm) {
           lastFaultForAlarm = faultStr
           try {
-            alarmInsert.run(faultStr, 'active', ts)
+            alarmInsert.run(faultStr, 'active', ts, PREDICTIVE_MQTT_TOPIC)
           } catch (alarmErr) {
             console.error('[Predictive MQTT] alarm INSERT failed:', alarmErr.message)
           }
