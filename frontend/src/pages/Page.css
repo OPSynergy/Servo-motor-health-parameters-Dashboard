@@ -33,6 +33,10 @@
   margin: 0;
 }
 
+.maintenance-page .page-title {
+  margin-bottom: 24px;
+}
+
 .home-logo-container {
   position: fixed;
   top: 20px;

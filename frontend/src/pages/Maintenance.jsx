@@ -2,10 +2,10 @@ import './Page.css'
 
 const Maintenance = () => {
   const maintenanceTasks = [
-    { id: 1, task: 'Lubrication', frequency: 'Monthly', lastDone: '2024-01-15', nextDue: '2024-02-15', status: 'due' },
-    { id: 2, task: 'Bearing Inspection', frequency: 'Quarterly', lastDone: '2023-12-01', nextDue: '2024-03-01', status: 'scheduled' },
-    { id: 3, task: 'Electrical Check', frequency: 'Monthly', lastDone: '2024-01-20', nextDue: '2024-02-20', status: 'scheduled' },
-    { id: 4, task: 'Calibration', frequency: 'Annually', lastDone: '2023-06-01', nextDue: '2024-06-01', status: 'scheduled' },
+    { id: 1, task: 'Lubrication', frequency: 'Monthly', lastDone: '2026-01-14', nextDue: '2026-02-14', status: 'due' },
+    { id: 2, task: 'Bearing Inspection', frequency: 'Quarterly', lastDone: '2025-11-14', nextDue: '2026-02-14', status: 'due' },
+    { id: 3, task: 'Electrical Check', frequency: 'Monthly', lastDone: '2026-01-14', nextDue: '2026-02-14', status: 'due' },
+    { id: 4, task: 'Calibration', frequency: 'Annually', lastDone: '2025-02-14', nextDue: '2026-02-14', status: 'due' },
   ]
 
   return (
