@@ -1200,9 +1200,9 @@ body:has(.sidebar-collapsed) .home-logo-container {
 }
 
 .motor-health-page .health-main-card {
-  padding: 16px 20px;
+  padding: 20px 24px;
   border-radius: 16px;
-  flex: 0 1 auto;
+  flex: 1 1 auto;
   min-height: 0;
 }
 
@@ -1211,7 +1211,7 @@ body:has(.sidebar-collapsed) .home-logo-container {
 }
 
 .motor-health-page .health-header {
-  margin-bottom: 12px;
+  margin-bottom: 16px;
 }
 
 .health-title-section {
@@ -1230,7 +1230,7 @@ body:has(.sidebar-collapsed) .home-logo-container {
 }
 
 .motor-health-page .health-shield-icon {
-  font-size: 28px;
+  font-size: 32px;
 }
 
 .health-title-section h2 {
@@ -1241,7 +1241,7 @@ body:has(.sidebar-collapsed) .home-logo-container {
 }
 
 .motor-health-page .health-title-section h2 {
-  font-size: 18px;
+  font-size: 22px;
 }
 
 .health-title-section p {
@@ -1251,7 +1251,7 @@ body:has(.sidebar-collapsed) .home-logo-container {
 }
 
 .motor-health-page .health-title-section p {
-  font-size: 12px;
+  font-size: 14px;
 }
 
 .health-visualization {
@@ -1265,7 +1265,8 @@ body:has(.sidebar-collapsed) .home-logo-container {
 }
 
 .motor-health-page .health-visualization {
-  gap: 12px;
+  gap: 20px;
+  flex: 1;
 }
 
 .circular-progress-container {
@@ -1299,7 +1300,7 @@ body:has(.sidebar-collapsed) .home-logo-container {
 }
 
 .motor-health-page .progress-value {
-  font-size: 32px;
+  font-size: 38px;
 }
 
 .progress-label {
@@ -1310,8 +1311,8 @@ body:has(.sidebar-collapsed) .home-logo-container {
 }
 
 .motor-health-page .progress-label {
-  font-size: 12px;
-  margin-top: 2px;
+  font-size: 14px;
+  margin-top: 4px;
 }
 
 .health-details {
@@ -1322,7 +1323,7 @@ body:has(.sidebar-collapsed) .home-logo-container {
 }
 
 .motor-health-page .health-details {
-  gap: 8px;
+  gap: 12px;
 }
 
 .health-detail-item {
@@ -1335,8 +1336,8 @@ body:has(.sidebar-collapsed) .home-logo-container {
 }
 
 .motor-health-page .health-detail-item {
-  padding: 4px 8px;
-  border-radius: 8px;
+  padding: 8px 12px;
+  border-radius: 10px;
 }
 
 .health-detail-label {
@@ -1346,7 +1347,7 @@ body:has(.sidebar-collapsed) .home-logo-container {
 }
 
 .motor-health-page .health-detail-label {
-  font-size: 11px;
+  font-size: 14px;
 }
 
 .health-detail-value {
@@ -1356,7 +1357,7 @@ body:has(.sidebar-collapsed) .home-logo-container {
 }
 
 .motor-health-page .health-detail-value {
-  font-size: 13px;
+  font-size: 15px;
   text-align: right;
 }
 
